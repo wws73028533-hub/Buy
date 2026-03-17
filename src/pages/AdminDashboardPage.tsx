@@ -14,15 +14,15 @@ import type { ContactItem, Product, TutorialItem } from '../types/content'
 type AdminTab = 'products' | 'tutorials' | 'contacts'
 
 const tabs: Array<{ key: AdminTab; label: string; hint: string }> = [
-  { key: 'products', label: '商品', hint: '封面、标题、详情富文本' },
-  { key: 'tutorials', label: '教程', hint: '外部链接或站内文件' },
-  { key: 'contacts', label: '售后联系方式', hint: '文字、链接、二维码' },
+  { key: 'products', label: '商品展示', hint: '封面、标题、卖点说明' },
+  { key: 'tutorials', label: '使用指南', hint: '图文链接或资料入口' },
+  { key: 'contacts', label: '咨询售后', hint: '文字、链接、二维码' },
 ]
 
 export function AdminDashboardPage() {
   usePageMeta({
-    title: '后台管理',
-    description: '管理商品、教程文档与售后联系方式。',
+    title: '商家工作台',
+    description: '维护前台展示的商品、使用指南与咨询售后内容。',
   })
 
   const { session, signOut, usingDefaultAdmin } = useAuth()
@@ -52,7 +52,7 @@ export function AdminDashboardPage() {
           return
         }
 
-        setError(loadError instanceof Error ? loadError.message : '后台数据加载失败')
+        setError(loadError instanceof Error ? loadError.message : '商家工作台加载失败')
       } finally {
         if (active) {
           setLoading(false)
@@ -85,28 +85,28 @@ export function AdminDashboardPage() {
       {
         label: '商品',
         value: products.length,
-        hint: `已发布 ${products.filter((item) => item.isPublished).length}`,
+        hint: `对外展示 ${products.filter((item) => item.isPublished).length}`,
       },
       {
-        label: '教程',
+        label: '指南',
         value: tutorials.length,
-        hint: `已发布 ${tutorials.filter((item) => item.isPublished).length}`,
+        hint: `对外展示 ${tutorials.filter((item) => item.isPublished).length}`,
       },
       {
-        label: '联系方式',
+        label: '服务入口',
         value: contacts.length,
-        hint: `已发布 ${contacts.filter((item) => item.isPublished).length}`,
+        hint: `对外展示 ${contacts.filter((item) => item.isPublished).length}`,
       },
     ],
     [contacts, products, tutorials],
   )
 
   if (loading) {
-    return <LoadingView message="正在加载后台内容..." />
+    return <LoadingView message="正在加载商家工作台..." />
   }
 
   if (error) {
-    return <EmptyState title="后台数据加载失败" description={error} />
+    return <EmptyState title="商家工作台加载失败" description={error} />
   }
 
   return (
@@ -115,10 +115,10 @@ export function AdminDashboardPage() {
         <div>
           <p className="text-sm font-medium text-slate-300">当前登录</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            商品展示站后台
+            商家工作台
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            {session?.user.email ?? '管理员'}，可在这里维护前台首页和详情页内容。
+            {session?.user.email ?? '商家账号'}，可在这里维护消费者看到的商品、指南与服务内容。
           </p>
         </div>
         <button
@@ -131,7 +131,7 @@ export function AdminDashboardPage() {
       </section>
 
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-800">
-        当前后台已连接 <strong>PostgreSQL 云端/服务器数据库</strong>，你在这里保存的内容会被所有公网访客看到。
+        当前内容已连接 <strong>PostgreSQL 数据库</strong>，你在这里保存的商品、指南和服务入口会直接展示给前台访客。
       </section>
 
       {usingDefaultAdmin ? (
@@ -151,11 +151,11 @@ export function AdminDashboardPage() {
       </div>
 
       <SectionCard
-        title="内容管理"
-        description="维护商品、教程和售后联系方式。勾选“发布”后，前台首页会自动读取。"
+        title="前台内容管理"
+        description="维护消费者看到的商品、使用指南和咨询售后入口。勾选“对外展示”后，前台会自动更新。"
       >
         <div className="mb-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-          建议先完成 3 步：① 创建商品并发布；② 补充教程文档；③ 配置至少一条售后联系方式。这样前台体验会更完整。
+          建议先完成 3 步：① 先放 1 款主推商品；② 补充新手上手指南；③ 配置至少 1 个咨询或售后入口。这样前台转化路径会更完整。
         </div>
         <div className="mb-6 grid gap-3 lg:grid-cols-3">
           {tabs.map((tab) => (

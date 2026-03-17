@@ -6,12 +6,85 @@ import type { Product, ProductInput } from '../../types/content'
 import { fileToDataUrl, formatDate, slugify } from '../../lib/utils'
 import { RichTextEditor } from '../rich-text/RichTextEditor'
 
+function createDefaultProductContent(): ProductInput['contentJson'] {
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: '先用 1 段话说明这款商品最大的亮点，以及消费者为什么值得先看它。',
+          },
+        ],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '适合谁' }],
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: '例如：第一次了解这类商品、想先快速上手的人' }],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: '例如：更在意省心服务与售后支持的人' }],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '你会得到什么' }],
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: '例如：核心权益、使用说明、配套资料等' }],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: '例如：售前咨询、售后答疑或补充资料支持' }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+}
+
 function createEmptyProduct(): ProductInput {
   return {
     title: '',
     slug: '',
     coverImageUrl: null,
-    contentJson: { type: 'doc', content: [{ type: 'paragraph' }] },
+    contentJson: createDefaultProductContent(),
     sortOrder: 0,
     isPublished: false,
   }
@@ -90,7 +163,7 @@ export function ProductManager({
     const slug = slugify(draft.slug || draft.title)
 
     if (!slug) {
-      window.alert('请填写有效的 slug')
+      window.alert('请填写有效的页面链接')
       return
     }
 
@@ -117,7 +190,7 @@ export function ProductManager({
       setSelectedId(saved.id)
       setCoverFile(null)
       setCoverPreview(saved.coverImageUrl)
-      window.alert('商品已保存')
+      window.alert('商品内容已保存')
     } catch (error) {
       const message = error instanceof Error ? error.message : '商品保存失败'
       window.alert(message)
@@ -134,7 +207,7 @@ export function ProductManager({
       return
     }
 
-    if (!window.confirm('确认删除这个商品吗？')) {
+    if (!window.confirm('确认删除这款商品吗？')) {
       return
     }
 
@@ -160,7 +233,7 @@ export function ProductManager({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-900">商品列表</p>
-            <p className="text-xs text-slate-500">共 {items.length} 个商品</p>
+            <p className="text-xs text-slate-500">共 {items.length} 个前台商品</p>
           </div>
           <button
             type="button"
@@ -173,7 +246,7 @@ export function ProductManager({
         <div className="space-y-3">
           {items.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-              还没有商品，先创建一个吧。
+              还没有商品内容，建议先创建 1 款主推商品。
             </p>
           ) : null}
           {items.map((item) => (
@@ -199,7 +272,7 @@ export function ProductManager({
                       : 'bg-amber-100 text-amber-700'
                   }`}
                 >
-                  {item.isPublished ? '已发布' : '草稿'}
+                  {item.isPublished ? '对外展示' : '草稿'}
                 </span>
               </div>
               <p className="mt-3 text-xs text-slate-400">更新于 {formatDate(item.updatedAt)}</p>
@@ -216,7 +289,7 @@ export function ProductManager({
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-              placeholder="例如：摄影课程礼包"
+              placeholder="例如：AI 协作尊享权益"
             />
           </label>
           <label className="space-y-2">
@@ -234,7 +307,7 @@ export function ProductManager({
               value={draft.slug}
               onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-              placeholder="photo-course"
+              placeholder="ai-collaboration-membership"
             />
           </label>
           <label className="space-y-2">
@@ -260,7 +333,7 @@ export function ProductManager({
               }
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            <span className="text-sm font-medium text-slate-700">发布到前台首页</span>
+            <span className="text-sm font-medium text-slate-700">对外展示到商品页</span>
           </label>
         </div>
 
@@ -268,7 +341,7 @@ export function ProductManager({
           <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <div>
               <p className="text-sm font-medium text-slate-900">封面图片</p>
-              <p className="mt-1 text-xs text-slate-500">首页卡片与详情页头图使用同一张封面。</p>
+              <p className="mt-1 text-xs text-slate-500">商品卡片和详情页头图会共用这张图片，建议优先突出商品主体。</p>
             </div>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
               {coverPreview ? (
@@ -276,7 +349,7 @@ export function ProductManager({
               ) : (
                 <>
                   <span className="text-sm font-medium text-slate-700">点击上传封面</span>
-                  <span className="mt-1 text-xs text-slate-400">建议横向图片，清晰展示商品主体</span>
+                  <span className="mt-1 text-xs text-slate-400">建议横向图片，首屏就能看清商品氛围和重点</span>
                 </>
               )}
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
@@ -286,7 +359,7 @@ export function ProductManager({
           <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <div>
               <p className="text-sm font-medium text-slate-900">商品详情</p>
-              <p className="mt-1 text-xs text-slate-500">支持标题、列表、引用、链接和图片上传。</p>
+              <p className="mt-1 text-xs text-slate-500">建议写清核心亮点、适合人群、服务说明和常见问题，帮助消费者更快做判断。</p>
             </div>
             <RichTextEditor
               value={draft.contentJson}
@@ -302,7 +375,7 @@ export function ProductManager({
             disabled={saving}
             className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
-            {saving ? '保存中...' : draft.id ? '保存商品' : '创建商品'}
+            {saving ? '保存中...' : draft.id ? '保存商品内容' : '创建商品'}
           </button>
           <button
             type="button"

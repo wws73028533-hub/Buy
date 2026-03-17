@@ -1,0 +1,21 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="64" fill="#082F49"/>
+  <circle cx="960" cy="170" r="220" fill="#38BDF8" fill-opacity="0.3"/>
+  <circle cx="240" cy="760" r="220" fill="#0EA5E9" fill-opacity="0.22"/>
+  <rect x="72" y="82" width="1056" height="736" rx="44" fill="url(#panel)" stroke="#FFFFFF" stroke-opacity="0.16"/>
+  <text x="120" y="180" fill="#BAE6FD" font-size="34" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">STARTER KIT</text>
+  <text x="120" y="310" fill="white" font-size="88" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">轻享效率入门包</text>
+  <text x="120" y="400" fill="#E0F2FE" font-size="34" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">适合第一次了解这类商品，先快速体验再决定是否继续深入</text>
+  <rect x="120" y="500" width="340" height="92" rx="46" fill="white" fill-opacity="0.12"/>
+  <text x="165" y="557" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">浏览路径更简单</text>
+  <rect x="490" y="500" width="340" height="92" rx="46" fill="white" fill-opacity="0.12"/>
+  <text x="535" y="557" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">适合新手先体验</text>
+  <rect x="860" y="500" width="220" height="92" rx="46" fill="white" fill-opacity="0.12"/>
+  <text x="915" y="557" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">更好上手</text>
+  <defs>
+    <linearGradient id="panel" x1="72" y1="82" x2="1128" y2="818" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C4A6E"/>
+      <stop offset="1" stop-color="#082F49"/>
+    </linearGradient>
+  </defs>
+</svg>

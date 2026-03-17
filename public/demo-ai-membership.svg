@@ -1,0 +1,22 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="64" fill="#0F172A"/>
+  <circle cx="980" cy="140" r="220" fill="#4F46E5" fill-opacity="0.34"/>
+  <circle cx="220" cy="140" r="180" fill="#14B8A6" fill-opacity="0.22"/>
+  <circle cx="1060" cy="780" r="180" fill="#38BDF8" fill-opacity="0.18"/>
+  <rect x="70" y="80" width="1060" height="740" rx="44" fill="url(#panel)" fill-opacity="0.9" stroke="#FFFFFF" stroke-opacity="0.16"/>
+  <text x="120" y="180" fill="#A5B4FC" font-size="34" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">CURATED PICKS</text>
+  <text x="120" y="310" fill="white" font-size="88" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">AI 协作尊享权益</text>
+  <text x="120" y="400" fill="#CBD5E1" font-size="34" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">适合希望快速开始体验、又重视上手指引与服务支持的用户</text>
+  <rect x="120" y="500" width="280" height="88" rx="44" fill="white" fill-opacity="0.1"/>
+  <text x="160" y="555" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">核心亮点更清晰</text>
+  <rect x="430" y="500" width="280" height="88" rx="44" fill="white" fill-opacity="0.1"/>
+  <text x="470" y="555" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">指南资料更集中</text>
+  <rect x="740" y="500" width="280" height="88" rx="44" fill="white" fill-opacity="0.1"/>
+  <text x="780" y="555" fill="white" font-size="30" font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">咨询售后更省心</text>
+  <defs>
+    <linearGradient id="panel" x1="70" y1="80" x2="1100" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+  </defs>
+</svg>

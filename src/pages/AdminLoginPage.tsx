@@ -7,8 +7,8 @@ import { usePageMeta } from '../hooks/usePageMeta'
 
 export function AdminLoginPage() {
   usePageMeta({
-    title: '管理员登录',
-    description: '登录后台管理商品、教程文档和售后联系方式。',
+    title: '商家登录',
+    description: '登录商家工作台，维护前台展示的商品、使用指南和咨询售后内容。',
   })
 
   const { loading, session, signIn, usingDefaultAdmin } = useAuth()
@@ -40,9 +40,9 @@ export function AdminLoginPage() {
   return (
     <div className="mx-auto max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900">管理员登录</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">商家后台登录</h1>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          使用服务端配置的管理员账号登录，登录后可维护商品、教程与售后联系方式。
+          登录后即可维护前台展示的商品、使用指南与咨询售后内容。
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export function AdminLoginPage() {
           disabled={submitting || loading}
           className="w-full rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300"
         >
-          {submitting ? '登录中...' : '登录后台'}
+          {submitting ? '登录中...' : '进入商家工作台'}
         </button>
       </form>
     </div>

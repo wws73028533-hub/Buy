@@ -72,17 +72,17 @@ export function TutorialManager({
     event.preventDefault()
 
     if (!draft.title.trim()) {
-      window.alert('请先填写教程标题')
+      window.alert('请先填写指南标题')
       return
     }
 
     if (draft.type === 'link' && !draft.url?.trim()) {
-      window.alert('链接类型必须填写 URL')
+      window.alert('在线指南必须填写链接地址')
       return
     }
 
     if (draft.type === 'file' && !draft.fileUrl && !uploadFile) {
-      window.alert('文件类型必须上传文件')
+      window.alert('资料下载必须上传文件')
       return
     }
 
@@ -111,9 +111,9 @@ export function TutorialManager({
       onChange(nextItems)
       setSelectedId(saved.id)
       setUploadFile(null)
-      window.alert('教程已保存')
+      window.alert('指南内容已保存')
     } catch (error) {
-      const message = error instanceof Error ? error.message : '教程保存失败'
+      const message = error instanceof Error ? error.message : '指南保存失败'
       window.alert(message)
     } finally {
       setSaving(false)
@@ -127,7 +127,7 @@ export function TutorialManager({
       return
     }
 
-    if (!window.confirm('确认删除这个教程项吗？')) {
+    if (!window.confirm('确认删除这条指南内容吗？')) {
       return
     }
 
@@ -138,9 +138,9 @@ export function TutorialManager({
       const nextItems = items.filter((item) => item.id !== draft.id)
       onChange(nextItems)
       setSelectedId('new')
-      window.alert('教程已删除')
+      window.alert('指南已删除')
     } catch (error) {
-      const message = error instanceof Error ? error.message : '教程删除失败'
+      const message = error instanceof Error ? error.message : '指南删除失败'
       window.alert(message)
     } finally {
       setSaving(false)
@@ -152,21 +152,21 @@ export function TutorialManager({
       <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-900">教程列表</p>
-            <p className="text-xs text-slate-500">共 {items.length} 个条目</p>
+            <p className="text-sm font-medium text-slate-900">使用指南</p>
+            <p className="text-xs text-slate-500">共 {items.length} 个指南或资料入口</p>
           </div>
           <button
             type="button"
             onClick={() => setSelectedId('new')}
             className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            新建教程
+            新建指南
           </button>
         </div>
         <div className="space-y-3">
           {items.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-              还没有教程文档。
+              还没有使用指南，建议先补充 1 份新手上手内容。
             </p>
           ) : null}
           {items.map((item) => (
@@ -194,7 +194,7 @@ export function TutorialManager({
                       : 'bg-amber-100 text-amber-700'
                   }`}
                 >
-                  {item.isPublished ? '已发布' : '草稿'}
+                  {item.isPublished ? '对外展示' : '草稿'}
                 </span>
               </div>
               <p className="mt-3 text-xs text-slate-400">更新于 {formatDate(item.updatedAt)}</p>
@@ -211,11 +211,11 @@ export function TutorialManager({
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-              placeholder="例如：售后使用教程 PDF"
+              placeholder="例如：新手上手指南"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">教程类型</span>
+            <span className="text-sm font-medium text-slate-700">内容类型</span>
             <select
               value={draft.type}
               onChange={(event) =>
@@ -228,8 +228,8 @@ export function TutorialManager({
               }
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
             >
-              <option value="link">外部链接</option>
-              <option value="file">站内文件</option>
+              <option value="link">在线指南</option>
+              <option value="file">资料下载</option>
             </select>
           </label>
           <label className="space-y-2">
@@ -255,7 +255,7 @@ export function TutorialManager({
               }
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            <span className="text-sm font-medium text-slate-700">显示到首页教程区</span>
+            <span className="text-sm font-medium text-slate-700">对外展示到使用指南页</span>
           </label>
         </div>
 
@@ -266,21 +266,21 @@ export function TutorialManager({
               value={draft.url ?? ''}
               onChange={(event) => setDraft((current) => ({ ...current, url: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-              placeholder="https://..."
+              placeholder="例如：https://your-brand.com/start-here"
             />
           </label>
         ) : (
           <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <div>
               <p className="text-sm font-medium text-slate-900">上传教程文件</p>
-              <p className="mt-1 text-xs text-slate-500">支持 PDF、DOCX、ZIP 等常见文件。</p>
+              <p className="mt-1 text-xs text-slate-500">支持 PDF、DOCX、ZIP 等常见格式，适合放说明书、资料包或模板。</p>
             </div>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
               <span className="text-sm font-medium text-slate-700">
-                {uploadFile ? uploadFile.name : '点击选择教程文件'}
+                {uploadFile ? uploadFile.name : '点击选择资料文件'}
               </span>
               <span className="mt-1 text-xs text-slate-400">
-                {draft.fileUrl ? '已存在文件，可重新上传覆盖链接' : '未上传文件'}
+                {draft.fileUrl ? '已存在文件，可重新上传覆盖' : '还未上传文件'}
               </span>
               <input type="file" className="hidden" onChange={handleFileChange} />
             </label>
@@ -303,7 +303,7 @@ export function TutorialManager({
             disabled={saving}
             className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
-            {saving ? '保存中...' : draft.id ? '保存教程' : '创建教程'}
+            {saving ? '保存中...' : draft.id ? '保存指南' : '创建指南'}
           </button>
           <button
             type="button"
@@ -311,7 +311,7 @@ export function TutorialManager({
             disabled={saving}
             className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {draft.id ? '删除教程' : '清空表单'}
+            {draft.id ? '删除指南' : '清空表单'}
           </button>
         </div>
       </form>

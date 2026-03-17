@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { config } from './config.js'
 import { initializeDatabase, pool } from './database.js'
+import { seedDefaultShowcaseContent } from './demoSeed.js'
 import { clearSessionCookie, getSessionFromRequest, setSessionCookie } from './session.js'
 import { assertUploadKind, ensureUploadDirectory, saveUploadedFile } from './storage.js'
 
@@ -524,6 +525,7 @@ app.use((error: Error & { status?: number; code?: string }, _request: express.Re
 async function bootstrap() {
   await ensureUploadDirectory()
   await initializeDatabase()
+  await seedDefaultShowcaseContent(pool)
 
   app.listen(config.port, () => {
     console.log(`Server running at http://127.0.0.1:${config.port}`)
