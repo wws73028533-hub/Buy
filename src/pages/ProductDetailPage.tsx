@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { EmptyState } from '../components/EmptyState'
 import { LoadingView } from '../components/LoadingView'
 import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
+import { getRichTextTextBlocks } from '../lib/richText'
 import { formatDate } from '../lib/utils'
 import { getPublishedProductBySlug } from '../services/publicApi'
 import type { Product } from '../types/content'
 
-const helpSteps = [
-  '先看商品介绍，确认这款商品是否符合你的需求。',
+const fallbackHighlights = [
+  '先看商品介绍，确认它是否适合你的需求和使用场景。',
   '想进一步了解使用方式，可以继续查看使用指南。',
   '下单前后有问题，都可以通过咨询售后页面联系商家。',
 ]
@@ -58,6 +59,14 @@ export function ProductDetailPage() {
     }
   }, [slug])
 
+  const textBlocks = useMemo(
+    () => (product ? getRichTextTextBlocks(product.contentJson).filter(Boolean) : []),
+    [product],
+  )
+  const summary = textBlocks[0] ?? '这里集中展示商品亮点、使用说明和购买前需要知道的信息。'
+  const highlights = textBlocks.slice(1, 4)
+  const concernItems = highlights.length > 0 ? highlights : fallbackHighlights
+
   if (loading) {
     return <LoadingView message="正在加载商品详情..." />
   }
@@ -81,7 +90,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <article className="space-y-8">
+    <article className="space-y-6 lg:space-y-8">
       <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
         <Link to="/products" className="font-medium text-brand-600 underline underline-offset-4">
           ← 返回全部商品
@@ -102,14 +111,25 @@ export function ProductDetailPage() {
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-soft sm:p-7">
-          <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">
-            商品详情
-          </span>
-          <p className="mt-4 text-sm text-slate-400">最近更新于 {formatDate(product.updatedAt)}</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.title}</h1>
-          <p className="mt-4 text-sm leading-7 text-slate-500">
-            这里会集中展示这款商品的核心亮点、适合人群、使用说明与注意事项，方便你在继续了解前先做判断。
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">
+              在售商品
+            </span>
+            <span className="text-sm text-slate-400">最近更新于 {formatDate(product.updatedAt)}</span>
+          </div>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.title}</h1>
+          <p className="mt-4 text-sm leading-7 text-slate-500">{summary}</p>
+
+          {highlights.length > 0 ? (
+            <div className="mt-5 grid gap-3">
+              {highlights.map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                  {item}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="mt-6 grid gap-3">
             <Link
               to="/tutorials"
@@ -127,32 +147,46 @@ export function ProductDetailPage() {
         </div>
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 shadow-soft sm:px-10">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-7 shadow-soft sm:px-8">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">商品介绍</span>
-            <span className="text-sm text-slate-400">建议结合自己的需求和使用场景阅读</span>
+            <span className="text-sm text-slate-400">按你的需求阅读亮点、说明和注意事项</span>
           </div>
 
-          <div className="mt-8 rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-8">
+          <div className="mt-6 rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-6">
             <RichTextViewer content={product.contentJson} />
           </div>
-        </div>
+        </section>
 
         <aside className="space-y-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
-            <h2 className="text-lg font-semibold text-slate-900">了解这款商品的建议顺序</h2>
+            <h2 className="text-lg font-semibold text-slate-900">你可能最关心</h2>
             <ul className="mt-3 space-y-3 text-sm leading-6 text-slate-500">
-              {helpSteps.map((item) => (
+              {concernItems.map((item) => (
                 <li key={item}>• {item}</li>
               ))}
             </ul>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <h2 className="text-lg font-semibold text-slate-900">温馨提示</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              如果你想确认细节、补充资料或售后政策，建议直接前往咨询售后页面，会比在商品介绍里来回翻找更高效。
+            <h2 className="text-lg font-semibold text-slate-900">继续了解与售后支持</h2>
+            <div className="mt-4 grid gap-3">
+              <Link
+                to="/tutorials"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                去看使用指南
+              </Link>
+              <Link
+                to="/support"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                联系咨询售后
+              </Link>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-500">
+              如果你想确认细节、补充资料或售后政策，直接前往咨询售后页面会更高效。
             </p>
           </div>
         </aside>
