@@ -5,6 +5,8 @@ export interface Product {
   slug: string
   title: string
   coverImageUrl: string | null
+  purchaseLinkUrl: string | null
+  purchaseCode: string | null
   contentJson: RichTextJson
   sortOrder: number
   isPublished: boolean
@@ -43,6 +45,8 @@ export interface ProductInput {
   slug: string
   title: string
   coverImageUrl: string | null
+  purchaseLinkUrl: string | null
+  purchaseCode: string | null
   contentJson: RichTextJson
   sortOrder: number
   isPublished: boolean

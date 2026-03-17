@@ -84,6 +84,8 @@ function createEmptyProduct(): ProductInput {
     title: '',
     slug: '',
     coverImageUrl: null,
+    purchaseLinkUrl: '',
+    purchaseCode: '',
     contentJson: createDefaultProductContent(),
     sortOrder: 0,
     isPublished: false,
@@ -125,6 +127,8 @@ export function ProductManager({
         title: selectedItem.title,
         slug: selectedItem.slug,
         coverImageUrl: selectedItem.coverImageUrl,
+        purchaseLinkUrl: selectedItem.purchaseLinkUrl,
+        purchaseCode: selectedItem.purchaseCode,
         contentJson: selectedItem.contentJson,
         sortOrder: selectedItem.sortOrder,
         isPublished: selectedItem.isPublished,
@@ -178,6 +182,8 @@ export function ProductManager({
         ...draft,
         slug,
         coverImageUrl,
+        purchaseLinkUrl: draft.purchaseLinkUrl?.trim() || null,
+        purchaseCode: draft.purchaseCode?.trim() || null,
       })
 
       const nextItems = sortProducts(
@@ -334,6 +340,35 @@ export function ProductManager({
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm font-medium text-slate-700">对外展示到商品页</span>
+          </label>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">外部购买链接（可选）</span>
+            <input
+              value={draft.purchaseLinkUrl ?? ''}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, purchaseLinkUrl: event.target.value }))
+              }
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+              placeholder="例如：https://your-platform.com/item/123"
+            />
+            <p className="text-xs leading-6 text-slate-400">填写后，详情页会显示“链接直达”按钮，直接跳转到外部平台购买。</p>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">购买口令（可选）</span>
+            <textarea
+              value={draft.purchaseCode ?? ''}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, purchaseCode: event.target.value }))
+              }
+              rows={4}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+              placeholder="例如：复制口令后打开对应平台搜索：AI 协作尊享权益"
+            />
+            <p className="text-xs leading-6 text-slate-400">填写后，详情页会提供“一键复制口令”，方便用户去其它平台搜索下单。</p>
           </label>
         </div>
 

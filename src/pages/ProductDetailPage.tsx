@@ -6,7 +6,7 @@ import { LoadingView } from '../components/LoadingView'
 import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
 import { getRichTextTextBlocks } from '../lib/richText'
-import { formatDate } from '../lib/utils'
+import { copyText, formatDate } from '../lib/utils'
 import { getPublishedProductBySlug } from '../services/publicApi'
 import type { Product } from '../types/content'
 
@@ -21,6 +21,7 @@ export function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
 
   usePageMeta({
     title: product?.title ?? '商品详情',
@@ -66,6 +67,20 @@ export function ProductDetailPage() {
   const summary = textBlocks[0] ?? '这里集中展示商品亮点、使用说明和购买前需要知道的信息。'
   const highlights = textBlocks.slice(1, 4)
   const concernItems = highlights.length > 0 ? highlights : fallbackHighlights
+
+  const handleCopyCode = async () => {
+    if (!product?.purchaseCode) {
+      return
+    }
+
+    try {
+      await copyText(product.purchaseCode)
+      setCopyStatus('copied')
+      window.setTimeout(() => setCopyStatus('idle'), 2000)
+    } catch {
+      setCopyStatus('error')
+    }
+  }
 
   if (loading) {
     return <LoadingView message="正在加载商品详情..." />
@@ -119,6 +134,7 @@ export function ProductDetailPage() {
           </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.title}</h1>
           <p className="mt-4 text-sm leading-7 text-slate-500">{summary}</p>
+          <p className="mt-2 text-xs leading-6 text-slate-400">本网站仅做商品展示，购买需跳转到其它平台完成。</p>
 
           {highlights.length > 0 ? (
             <div className="mt-5 grid gap-3">
@@ -131,19 +147,40 @@ export function ProductDetailPage() {
           ) : null}
 
           <div className="mt-6 grid gap-3">
-            <Link
-              to="/tutorials"
-              className="rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              查看使用指南
-            </Link>
-            <Link
-              to="/support"
-              className="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              咨询售后支持
-            </Link>
+            {product.purchaseLinkUrl ? (
+              <a
+                href={product.purchaseLinkUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                链接直达购买
+              </a>
+            ) : null}
+            {product.purchaseCode ? (
+              <button
+                type="button"
+                onClick={() => void handleCopyCode()}
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                复制购买口令
+              </button>
+            ) : null}
+            {!product.purchaseLinkUrl && !product.purchaseCode ? (
+              <Link
+                to="/support"
+                className="rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                先联系客服购买
+              </Link>
+            ) : null}
           </div>
+          {copyStatus === 'copied' ? (
+            <p className="mt-3 text-xs text-emerald-600">购买口令已复制，可以前往外部平台粘贴搜索。</p>
+          ) : null}
+          {copyStatus === 'error' ? (
+            <p className="mt-3 text-xs text-rose-600">复制失败，请手动复制下方口令内容。</p>
+          ) : null}
         </div>
       </section>
 
@@ -160,6 +197,46 @@ export function ProductDetailPage() {
         </section>
 
         <aside className="space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+            <h2 className="text-lg font-semibold text-slate-900">购买方式</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">本站不支持直接支付，可通过商家提供的外部链接或购买口令完成下单。</p>
+            {product.purchaseLinkUrl || product.purchaseCode ? (
+              <div className="mt-4 space-y-4">
+                {product.purchaseLinkUrl ? (
+                  <a
+                    href={product.purchaseLinkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    链接直达购买
+                  </a>
+                ) : null}
+                {product.purchaseCode ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-900">复制口令</p>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyCode()}
+                        className="text-sm font-semibold text-brand-600"
+                      >
+                        一键复制
+                      </button>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap break-all text-sm leading-6 text-slate-600">
+                      {product.purchaseCode}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                当前商品暂未配置站外购买链接或口令，建议先联系客服确认购买方式。
+              </p>
+            )}
+          </div>
+
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <h2 className="text-lg font-semibold text-slate-900">你可能最关心</h2>
             <ul className="mt-3 space-y-3 text-sm leading-6 text-slate-500">

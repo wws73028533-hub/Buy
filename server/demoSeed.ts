@@ -4,6 +4,8 @@ type SeedProduct = {
   slug: string
   title: string
   coverImageUrl: string | null
+  purchaseLinkUrl: string | null
+  purchaseCode: string | null
   contentJson: Record<string, unknown>
   sortOrder: number
   isPublished: boolean
@@ -95,6 +97,8 @@ const demoProducts: SeedProduct[] = [
     slug: 'ai-collaboration-membership',
     title: 'AI 协作尊享权益',
     coverImageUrl: '/demo-ai-membership.svg',
+    purchaseLinkUrl: null,
+    purchaseCode: '复制口令后打开对应平台搜索：AI 协作尊享权益',
     contentJson: createProductContent({
       intro: '适合想快速开启高频协作、同时重视上手体验与售后支持的用户。',
       audience: ['想尽快开始体验核心功能的人', '更看重省心服务与资料指引的人', '希望先从稳定方案开始了解的人'],
@@ -107,6 +111,8 @@ const demoProducts: SeedProduct[] = [
     slug: 'starter-efficiency-kit',
     title: '轻享效率入门包',
     coverImageUrl: '/demo-efficiency-kit.svg',
+    purchaseLinkUrl: 'https://example.com/buy/starter-efficiency-kit',
+    purchaseCode: '复制口令后打开对应平台搜索：轻享效率入门包',
     contentJson: createProductContent({
       intro: '适合第一次了解这类商品的用户，先小成本体验，再决定是否继续深入。',
       audience: ['想先快速判断是否适合自己的人', '偏好简单清晰购买路径的人', '希望先看说明再做决定的人'],
@@ -163,9 +169,18 @@ async function readTableCount(client: PoolClient, tableName: 'products' | 'tutor
 async function insertProducts(client: PoolClient, items: SeedProduct[]) {
   for (const item of items) {
     await client.query(
-      `insert into products (slug, title, cover_image_url, content_json, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [item.slug, item.title, item.coverImageUrl, item.contentJson, item.sortOrder, item.isPublished],
+      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_code, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        item.slug,
+        item.title,
+        item.coverImageUrl,
+        item.purchaseLinkUrl,
+        item.purchaseCode,
+        item.contentJson,
+        item.sortOrder,
+        item.isPublished,
+      ],
     )
   }
 }

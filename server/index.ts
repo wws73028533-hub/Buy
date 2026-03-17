@@ -14,6 +14,8 @@ type Product = {
   slug: string
   title: string
   coverImageUrl: string | null
+  purchaseLinkUrl: string | null
+  purchaseCode: string | null
   contentJson: Record<string, unknown>
   sortOrder: number
   isPublished: boolean
@@ -56,6 +58,8 @@ const productColumns = `
   slug,
   title,
   cover_image_url as "coverImageUrl",
+  purchase_link_url as "purchaseLinkUrl",
+  purchase_code as "purchaseCode",
   content_json as "contentJson",
   sort_order as "sortOrder",
   is_published as "isPublished",
@@ -116,6 +120,26 @@ function readOptionalString(value: unknown) {
   return trimmed ? trimmed : null
 }
 
+function readOptionalHttpUrl(value: unknown, field: string) {
+  const url = readOptionalString(value)
+
+  if (!url) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(url)
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('invalid protocol')
+    }
+
+    return parsed.toString()
+  } catch {
+    throw badRequest(`${field}必须是有效的 http 或 https 链接`)
+  }
+}
+
 function readBoolean(value: unknown, field: string) {
   if (typeof value !== 'boolean') {
     throw badRequest(`${field}必须是布尔值`)
@@ -147,6 +171,8 @@ function normalizeProductInput(body: unknown) {
     slug: readString(input.slug, 'slug'),
     title: readString(input.title, '商品标题'),
     coverImageUrl: readOptionalString(input.coverImageUrl),
+    purchaseLinkUrl: readOptionalHttpUrl(input.purchaseLinkUrl, '外部购买链接'),
+    purchaseCode: readOptionalString(input.purchaseCode),
     contentJson: readObject(input.contentJson, '商品详情'),
     sortOrder: readNumber(input.sortOrder, '排序值'),
     isPublished: readBoolean(input.isPublished, '发布状态'),
@@ -320,13 +346,15 @@ app.post('/api/admin/products', requireAdmin, async (request, response, next) =>
   try {
     const input = normalizeProductInput(request.body)
     const result = await pool.query<Product>(
-      `insert into products (slug, title, cover_image_url, content_json, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6)
+      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_code, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
        returning ${productColumns}`,
       [
         input.slug,
         input.title,
         input.coverImageUrl,
+        input.purchaseLinkUrl,
+        input.purchaseCode,
         input.contentJson,
         input.sortOrder,
         input.isPublished,
@@ -347,9 +375,11 @@ app.put('/api/admin/products/:id', requireAdmin, async (request, response, next)
        set slug = $2,
            title = $3,
            cover_image_url = $4,
-           content_json = $5,
-           sort_order = $6,
-           is_published = $7
+           purchase_link_url = $5,
+           purchase_code = $6,
+           content_json = $7,
+           sort_order = $8,
+           is_published = $9
        where id = $1
        returning ${productColumns}`,
       [
@@ -357,6 +387,8 @@ app.put('/api/admin/products/:id', requireAdmin, async (request, response, next)
         input.slug,
         input.title,
         input.coverImageUrl,
+        input.purchaseLinkUrl,
+        input.purchaseCode,
         input.contentJson,
         input.sortOrder,
         input.isPublished,

@@ -13,12 +13,17 @@ create table if not exists public.products (
   slug text not null unique,
   title text not null,
   cover_image_url text,
+  purchase_link_url text,
+  purchase_code text,
   content_json jsonb not null default '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb,
   sort_order integer not null default 0,
   is_published boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.products add column if not exists purchase_link_url text;
+alter table public.products add column if not exists purchase_code text;
 
 create table if not exists public.tutorial_items (
   id uuid primary key default gen_random_uuid(),
