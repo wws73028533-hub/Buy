@@ -5,6 +5,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoadingView } from './components/LoadingView'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SiteShell } from './components/SiteShell'
+import { AdminDataProvider } from './contexts/AdminDataContext'
 import { HomePage } from './pages/HomePage'
 
 const ProductsPage = lazy(async () => {
@@ -37,9 +38,34 @@ const AdminLoginPage = lazy(async () => {
   return { default: module.AdminLoginPage }
 })
 
-const AdminDashboardPage = lazy(async () => {
-  const module = await import('./pages/AdminDashboardPage')
-  return { default: module.AdminDashboardPage }
+const AdminShell = lazy(async () => {
+  const module = await import('./components/admin/AdminShell')
+  return { default: module.AdminShell }
+})
+
+const AdminOverviewPage = lazy(async () => {
+  const module = await import('./pages/admin/AdminOverviewPage')
+  return { default: module.AdminOverviewPage }
+})
+
+const AdminProductsPage = lazy(async () => {
+  const module = await import('./pages/admin/AdminProductsPage')
+  return { default: module.AdminProductsPage }
+})
+
+const AdminTutorialsPage = lazy(async () => {
+  const module = await import('./pages/admin/AdminTutorialsPage')
+  return { default: module.AdminTutorialsPage }
+})
+
+const AdminRedeemPage = lazy(async () => {
+  const module = await import('./pages/admin/AdminRedeemPage')
+  return { default: module.AdminRedeemPage }
+})
+
+const AdminContactsPage = lazy(async () => {
+  const module = await import('./pages/admin/AdminContactsPage')
+  return { default: module.AdminContactsPage }
 })
 
 const NotFoundPage = lazy(async () => {
@@ -54,6 +80,71 @@ function LazyPage({ children }: { children: ReactNode }) {
 function App() {
   return (
     <Routes>
+      <Route
+        path="/admin/login"
+        element={
+          <LazyPage>
+            <AdminLoginPage />
+          </LazyPage>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminDataProvider>
+              <LazyPage>
+                <AdminShell />
+              </LazyPage>
+            </AdminDataProvider>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route
+          path="overview"
+          element={
+            <LazyPage>
+              <AdminOverviewPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="products"
+          element={
+            <LazyPage>
+              <AdminProductsPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="tutorials"
+          element={
+            <LazyPage>
+              <AdminTutorialsPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="redeem"
+          element={
+            <LazyPage>
+              <AdminRedeemPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="contacts"
+          element={
+            <LazyPage>
+              <AdminContactsPage />
+            </LazyPage>
+          }
+        />
+        <Route path="*" element={<Navigate to="overview" replace />} />
+      </Route>
+
       <Route element={<SiteShell />}>
         <Route path="/" element={<HomePage />} />
         <Route
@@ -97,24 +188,6 @@ function App() {
           }
         />
         <Route
-          path="/admin/login"
-          element={
-            <LazyPage>
-              <AdminLoginPage />
-            </LazyPage>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <LazyPage>
-                <AdminDashboardPage />
-              </LazyPage>
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/404"
           element={
             <LazyPage>
@@ -122,8 +195,9 @@ function App() {
             </LazyPage>
           }
         />
-        <Route path="*" element={<Navigate to="/404" replace />} />
       </Route>
+
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   )
 }
