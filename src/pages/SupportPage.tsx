@@ -75,11 +75,11 @@ export function SupportPage() {
                       ) : null}
                     </div>
                     {contact.qrImageUrl ? (
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                      <div className="shrink-0 rounded-3xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
                         <img
                           src={contact.qrImageUrl}
                           alt={`${contact.label} 二维码`}
-                          className="h-32 w-32 rounded-2xl object-cover"
+                          className="block h-32 w-32 rounded-2xl bg-white object-contain"
                         />
                         <p className="mt-2 text-center text-xs text-slate-500">扫码即可联系</p>
                       </div>

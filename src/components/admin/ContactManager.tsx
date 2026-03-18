@@ -255,7 +255,7 @@ export function ContactManager({
           </div>
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
             {qrPreview ? (
-              <img src={qrPreview} alt="二维码预览" className="h-52 w-52 rounded-2xl object-cover" />
+              <img src={qrPreview} alt="二维码预览" className="block h-52 w-52 rounded-2xl bg-white object-contain" />
             ) : (
               <>
                 <span className="text-sm font-medium text-slate-700">点击上传二维码</span>

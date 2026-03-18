@@ -191,7 +191,11 @@ export function HomePage() {
                           <p className="mt-2 text-sm leading-6 text-slate-500">{contact.value}</p>
                         </div>
                         {contact.qrImageUrl ? (
-                          <img src={contact.qrImageUrl} alt={`${contact.label} 二维码`} className="h-20 w-20 rounded-2xl object-cover" />
+                          <img
+                            src={contact.qrImageUrl}
+                            alt={`${contact.label} 二维码`}
+                            className="block h-20 w-20 shrink-0 rounded-2xl bg-white object-contain"
+                          />
                         ) : null}
                       </div>
                       {contact.linkUrl ? (
