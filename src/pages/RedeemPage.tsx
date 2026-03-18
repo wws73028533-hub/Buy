@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState } from '../components/EmptyState'
@@ -12,8 +12,8 @@ import type { RedeemResult } from '../types/content'
 
 const redeemTips = [
   '请输入卖家单独发给你的兑换码。',
-  '兑换成功后，该兑换码会立即失效，请勿重复提交。',
-  '如果提示无效或已使用，请直接联系商家确认。',
+  '首次兑换后，该兑换码会标记为已使用。',
+  '如果后续忘记内容，可再次输入同一兑换码查看兑换记录。',
 ]
 
 export function RedeemPage() {
@@ -26,6 +26,18 @@ export function RedeemPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [redemption, setRedemption] = useState<RedeemResult | null>(null)
+
+  const isHistoryView = redemption?.accessMode === 'history'
+
+  const resultDescription = useMemo(() => {
+    if (!redemption) {
+      return ''
+    }
+
+    return isHistoryView
+      ? `兑换记录查看，首次使用时间：${formatDateTime(redemption.redeemedAt)}`
+      : `首次兑换成功，使用时间：${formatDateTime(redemption.redeemedAt)}`
+  }, [isHistoryView, redemption])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -55,11 +67,11 @@ export function RedeemPage() {
     <div className="space-y-6 lg:space-y-8">
       <PublicPageHeader
         badge="兑换码"
-        title="拿到兑换码后，在这里直接兑换交付内容。"
+        title="拿到兑换码后，在这里直接兑换或查看交付记录。"
         description="有些商品会通过兑换码发货。请输入卖家提供的兑换码，系统会直接展示对应的账号、密码、步骤或备注说明。"
         aside={
           <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            兑换码仅可使用 <span className="font-semibold text-slate-900">1 次</span>
+            首次使用后会标记为 <span className="font-semibold text-slate-900">已使用</span>，后续仍可查看记录
           </div>
         }
         actions={
@@ -100,9 +112,9 @@ export function RedeemPage() {
               disabled={submitting}
               className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300"
             >
-              {submitting ? '兑换中...' : '立即兑换'}
+              {submitting ? '查询中...' : '立即查看'}
             </button>
-            <span className="text-sm text-slate-500">兑换成功后会直接展示交付内容，并立即核销该兑换码。</span>
+            <span className="text-sm text-slate-500">首次输入会记录使用时间；之后再次输入同一码，可直接查看兑换记录。</span>
           </div>
         </form>
 
@@ -119,15 +131,20 @@ export function RedeemPage() {
       </SectionCard>
 
       {redemption ? (
-        <SectionCard
-          title={redemption.title}
-          description={`兑换成功，核销时间：${formatDateTime(redemption.redeemedAt)}`}
-        >
+        <SectionCard title={redemption.title} description={resultDescription}>
           <div className="rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-6">
             <RichTextViewer content={redemption.contentJson} />
           </div>
-          <div className="mt-5 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-800">
-            当前兑换码已完成核销，请及时保存上方内容。如需补发或变更，请联系商家处理。
+          <div
+            className={`mt-5 rounded-3xl px-5 py-4 text-sm leading-6 ${
+              isHistoryView
+                ? 'border border-sky-200 bg-sky-50 text-sky-800'
+                : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+            }`}
+          >
+            {isHistoryView
+              ? '这是该兑换码的历史兑换记录。如需补发或变更，请联系商家处理。'
+              : '当前兑换码已标记为已使用，请及时保存上方内容；后续忘记时可再次输入同一码查看记录。'}
           </div>
         </SectionCard>
       ) : (

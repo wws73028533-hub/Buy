@@ -200,7 +200,7 @@ export function RedeemManager({
     }
 
     if (selectedItem.redeemedAt) {
-      window.alert('已兑换的兑换码不能再修改')
+      window.alert('已使用的兑换码不能再修改')
       return
     }
 
@@ -235,7 +235,7 @@ export function RedeemManager({
     }
 
     if (selectedItem.redeemedAt) {
-      window.alert('已兑换的兑换码不能删除')
+      window.alert('已使用的兑换码不能删除')
       return
     }
 
@@ -369,7 +369,7 @@ export function RedeemManager({
                       item.redeemedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                     }`}
                   >
-                    {item.redeemedAt ? '已兑换' : '待兑换'}
+                    {item.redeemedAt ? '已使用' : '待兑换'}
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-slate-400">创建于 {formatDateTime(item.createdAt)}</p>
@@ -390,7 +390,7 @@ export function RedeemManager({
             <p className="mt-2 text-3xl font-semibold text-slate-900">{codeSummary.pending}</p>
           </article>
           <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
-            <p className="text-xs text-slate-500">已兑换</p>
+            <p className="text-xs text-slate-500">已使用</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">{codeSummary.redeemed}</p>
           </article>
         </div>
@@ -409,7 +409,7 @@ export function RedeemManager({
                   <p className="mt-2 text-xs text-slate-500">创建于 {formatDateTime(selectedItem.createdAt)}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {selectedItem.redeemedAt
-                      ? `兑换于 ${formatDateTime(selectedItem.redeemedAt)}`
+                      ? `使用于 ${formatDateTime(selectedItem.redeemedAt)}`
                       : '尚未被买家兑换'}
                   </p>
                 </div>
@@ -432,7 +432,7 @@ export function RedeemManager({
                     </button>
                   ) : (
                     <span className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-400">
-                      已兑换不可删除
+                      已使用不可删除
                     </span>
                   )}
                 </div>
@@ -460,7 +460,7 @@ export function RedeemManager({
               <div>
                 <p className="text-sm font-medium text-slate-900">兑换后展示内容</p>
                 <p className="mt-1 text-xs leading-6 text-slate-500">
-                  这里填写这个兑换码专属的账号、密码、步骤和备注。已兑换的记录只展示，不允许再修改。
+                  这里填写这个兑换码专属的账号、密码、步骤和备注。已使用的记录只展示，不允许再修改。
                 </p>
               </div>
 
@@ -481,7 +481,7 @@ export function RedeemManager({
                   {saving ? '保存中...' : '保存兑换内容'}
                 </button>
                 {selectedItem.redeemedAt ? (
-                  <span className="text-sm text-slate-500">该兑换码已完成核销，当前内容仅供查看。</span>
+                  <span className="text-sm text-slate-500">该兑换码已标记为已使用，当前内容仅供查看。</span>
                 ) : (
                   <span className="text-sm text-slate-500">保存后，该兑换码将使用自己的独立内容，不再共享其它兑换码数据。</span>
                 )}

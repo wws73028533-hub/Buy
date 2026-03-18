@@ -19,7 +19,7 @@ function createAdminDataValue({
   contacts: ContactItem[]
   redeemItems: RedeemItem[]
 }): AdminDataContextValue {
-  const redeemedCodes = redeemItems.filter((item) => item.redeemedAt).length
+  const usedCodes = redeemItems.filter((item) => item.redeemedAt).length
 
   return {
     loading: false,
@@ -43,8 +43,8 @@ function createAdminDataValue({
       },
       redeem: {
         totalCodes: redeemItems.length,
-        pendingCodes: redeemItems.length - redeemedCodes,
-        redeemedCodes,
+        pendingCodes: redeemItems.length - usedCodes,
+        usedCodes,
       },
     },
     refresh: vi.fn(async () => undefined),

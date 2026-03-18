@@ -55,6 +55,7 @@ export interface RedeemResult {
   title: string
   contentJson: RichTextJson
   redeemedAt: string
+  accessMode: 'used' | 'history'
 }
 
 export interface ProductInput {

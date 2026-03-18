@@ -63,7 +63,10 @@ type Redemption = {
   title: string
   contentJson: Record<string, unknown>
   redeemedAt: string
+  accessMode: 'used' | 'history'
 }
+
+type RedemptionQueryRow = Omit<Redemption, 'accessMode'>
 
 const app = express()
 const upload = multer({
@@ -536,7 +539,7 @@ async function saveRedeemItem(id: string, input: ReturnType<typeof normalizeRede
     }
 
     if (existing.redeemedAt) {
-      throw badRequest('已兑换的兑换码不能再修改')
+      throw badRequest('已使用的兑换码不能再修改')
     }
 
     throw badRequest('兑换码保存失败')
@@ -551,13 +554,13 @@ async function saveRedeemItem(id: string, input: ReturnType<typeof normalizeRede
   return item
 }
 
-async function redeemCodeByValue(normalizedCode: string) {
+async function redeemCodeByValue(normalizedCode: string): Promise<Redemption> {
   const client = await pool.connect()
 
   try {
     await client.query('begin')
 
-    const result = await client.query<Redemption>(
+    const firstUseResult = await client.query<RedemptionQueryRow>(
       `update redeem_items as item
        set redeemed_at = now()
        from products as product
@@ -570,12 +573,40 @@ async function redeemCodeByValue(normalizedCode: string) {
       [normalizedCode],
     )
 
-    if (!result.rows[0]) {
-      throw badRequest('兑换码无效或已使用')
+    if (firstUseResult.rows[0]) {
+      await client.query('commit')
+      return {
+        ...firstUseResult.rows[0],
+        accessMode: 'used',
+      }
+    }
+
+    const historyResult = await client.query<RedemptionQueryRow>(
+      `select product.title as title,
+              item.content_json as "contentJson",
+              item.redeemed_at as "redeemedAt"
+       from redeem_items as item
+       join products as product on product.id = item.product_id
+       where item.normalized_code = $1
+       limit 1`,
+      [normalizedCode],
+    )
+
+    const history = historyResult.rows[0]
+
+    if (!history) {
+      throw badRequest('兑换码无效')
+    }
+
+    if (!history.redeemedAt) {
+      throw badRequest('兑换码状态异常，请稍后再试')
     }
 
     await client.query('commit')
-    return result.rows[0]
+    return {
+      ...history,
+      accessMode: 'history',
+    }
   } catch (error) {
     await client.query('rollback')
     throw error

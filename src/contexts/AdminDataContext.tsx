@@ -11,7 +11,7 @@ function countPublished<T extends { isPublished: boolean }>(items: T[]) {
 }
 
 function createSummary(products: Product[], tutorials: TutorialItem[], contacts: ContactItem[], redeemItems: RedeemItem[]): AdminSummary {
-  const redeemedCodes = redeemItems.filter((item) => item.redeemedAt).length
+  const usedCodes = redeemItems.filter((item) => item.redeemedAt).length
 
   return {
     products: {
@@ -28,8 +28,8 @@ function createSummary(products: Product[], tutorials: TutorialItem[], contacts:
     },
     redeem: {
       totalCodes: redeemItems.length,
-      pendingCodes: redeemItems.length - redeemedCodes,
-      redeemedCodes,
+      pendingCodes: redeemItems.length - usedCodes,
+      usedCodes,
     },
   }
 }

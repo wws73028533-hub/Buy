@@ -10,7 +10,7 @@ export type AdminContentSummary = {
 export type AdminRedeemSummary = {
   totalCodes: number
   pendingCodes: number
-  redeemedCodes: number
+  usedCodes: number
 }
 
 export type AdminSummary = {
