@@ -380,7 +380,7 @@ export function ProductManager({
             </div>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
               {coverPreview ? (
-                <img src={coverPreview} alt="封面预览" className="h-48 w-full rounded-2xl object-cover" />
+                <img src={coverPreview} alt="封面预览" className="block h-48 w-full rounded-2xl bg-white object-contain" />
               ) : (
                 <>
                   <span className="text-sm font-medium text-slate-700">点击上传封面</span>

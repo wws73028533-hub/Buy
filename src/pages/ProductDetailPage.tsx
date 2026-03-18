@@ -114,15 +114,13 @@ export function ProductDetailPage() {
         <span>商品详情</span>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-stretch">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-start">
         <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft">
-          <div className="aspect-[16/10] bg-slate-100 sm:aspect-[16/8]">
-            {product.coverImageUrl ? (
-              <img src={product.coverImageUrl} alt={product.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">暂无封面图片</div>
-            )}
-          </div>
+          {product.coverImageUrl ? (
+            <img src={product.coverImageUrl} alt={product.title} className="block w-full bg-slate-50 object-contain" />
+          ) : (
+            <div className="flex min-h-[18rem] items-center justify-center bg-slate-100 text-sm text-slate-400">暂无封面图片</div>
+          )}
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-soft sm:p-7">
