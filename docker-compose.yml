@@ -1,16 +1,59 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: buy-app:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?请在 .env 中设置 ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请在 .env 中设置 ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?请在 .env 中设置 SESSION_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-buy}
+      UPLOADS_DIR: /app/uploads
+    ports:
+      - ${APP_BIND_IP:-127.0.0.1}:${APP_PORT:-3001}:3001
+    volumes:
+      - buy_uploads_data:/app/uploads
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/health').then((response) => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
   postgres:
     image: postgres:16-alpine
-    container_name: buy-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: buy
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-buy}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - '55432:5432'
+      - 127.0.0.1:${POSTGRES_PORT:-55432}:5432
     volumes:
       - buy_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   buy_postgres_data:
+  buy_uploads_data:

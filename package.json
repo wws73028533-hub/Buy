@@ -13,8 +13,12 @@
     "start": "node start-server.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
+    "compose:build": "docker compose build",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f app",
     "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down",
+    "db:down": "sh -c 'docker compose stop postgres && docker compose rm -f postgres'",
     "db:logs": "docker compose logs -f postgres",
     "test": "vitest run",
     "test:watch": "vitest"

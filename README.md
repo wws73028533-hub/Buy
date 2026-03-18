@@ -27,7 +27,7 @@
 cp .env.example .env
 ```
 
-默认内容如下：
+关键内容如下：
 
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/buy
@@ -35,6 +35,12 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-me
 SESSION_SECRET=change-this-in-production
 PORT=3001
+POSTGRES_DB=buy
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_PORT=55432
+APP_PORT=3001
+APP_BIND_IP=127.0.0.1
 ```
 
 可选生产环境变量：
@@ -85,48 +91,67 @@ npm run dev
 
 ## 生产部署建议
 
-### 最小可用方案
+### 推荐方案：Docker Compose + Nginx
 
-1. 准备一台公网 Linux 服务器
-2. 安装：Node.js 20+、Docker、Docker Compose
-3. 启动 PostgreSQL：
+项目已补齐以下生产部署文件：
+
+- `/Users/saksk/Desktop/project/Buy/Dockerfile`
+- `/Users/saksk/Desktop/project/Buy/docker-compose.yml`
+- `/Users/saksk/Desktop/project/Buy/deploy/nginx/buy.conf.example`
+- `/Users/saksk/Desktop/project/Buy/docs/deploy-ubuntu-24.04.md`
+
+最小部署步骤：
 
 ```bash
-docker compose up -d postgres
+cp .env.example .env
+# 修改 ADMIN_EMAIL / ADMIN_PASSWORD / SESSION_SECRET / POSTGRES_PASSWORD
+docker compose up -d --build
 ```
 
-4. 配置 `.env`
-   - 必须修改：`ADMIN_EMAIL`、`ADMIN_PASSWORD`、`SESSION_SECRET`
-   - 如需外网直连 Node 服务，可设置 `HOST=0.0.0.0`
-   - 如通过 Nginx / SLB / 反向代理转发，请设置 `TRUST_PROXY=1`
-   - 如需把上传目录放到独立磁盘，可设置 `UPLOADS_DIR=/your/path/uploads`
-5. 构建前端和后端：
+默认规则：
+
+- 应用容器内部监听：`3001`
+- 宿主机默认映射：`127.0.0.1:3001`
+- PostgreSQL 默认映射：`127.0.0.1:55432`
+- 上传文件保存在 Docker volume：`buy_uploads_data`
+- PostgreSQL 数据保存在 Docker volume：`buy_postgres_data`
+
+推荐再通过 Nginx 反向代理域名到 `127.0.0.1:3001`，并配置 HTTPS。
+
+完整 Ubuntu 24.04 部署指南见：
+
+- `/Users/saksk/Desktop/project/Buy/docs/deploy-ubuntu-24.04.md`
+
+### 备用方案：直接在宿主机运行 Node
+
+如果你不想用 Docker，也可以继续沿用宿主机 Node 方式：
+
+1. 安装 Node.js 20+
+2. 启动 PostgreSQL
+3. 配置 `.env`
+4. 执行：
 
 ```bash
 npm ci
 npm run build
-```
-
-6. 启动生产服务：
-
-```bash
 npm start
 ```
 
-> `npm start` 会强制以生产模式启动后端，并读取 `server-dist/index.js`。
+此模式下：
 
-默认监听：
-
-- `0.0.0.0:3001`（生产环境）
-
-建议再配 Nginx，把域名反代到 `3001`，并开启 HTTPS。
+- 如需外网直连 Node 服务，可设置 `HOST=0.0.0.0`
+- 如通过 Nginx / SLB / 反向代理转发，请设置 `TRUST_PROXY=1`
+- 如需把上传目录放到独立磁盘，可设置 `UPLOADS_DIR=/your/path/uploads`
 
 ## 文件与数据位置
 
-- PostgreSQL 数据：Docker volume `buy_postgres_data`
-- 上传文件目录：项目根目录下的 `uploads/`（可通过 `UPLOADS_DIR` 改为 Linux 绝对路径）
+- Docker Compose 模式：
+  - PostgreSQL 数据：Docker volume `buy_postgres_data`
+  - 上传文件目录：Docker volume `buy_uploads_data`
+- 宿主机 Node 模式：
+  - 上传文件目录：项目根目录下的 `uploads/`（可通过 `UPLOADS_DIR` 改为 Linux 绝对路径）
 
-> 正式部署时请注意备份数据库和 `uploads/` 目录。
+> 正式部署时请注意备份数据库和上传文件。
 
 ## 页面说明
 
@@ -141,6 +166,10 @@ npm start
 npm run dev        # 前后端开发模式
 npm run build      # 构建前端 + 后端
 npm start          # 强制以生产模式启动服务
+npm run compose:build # 构建 Docker 镜像
+npm run compose:up    # 构建并启动 Docker Compose
+npm run compose:down  # 停止 Docker Compose
+npm run compose:logs  # 查看应用容器日志
 npm run lint       # 代码检查
 npm run db:up      # 启动 PostgreSQL 容器
 npm run db:down    # 停止 PostgreSQL 容器
