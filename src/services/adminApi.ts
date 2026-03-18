@@ -1,10 +1,24 @@
 import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api'
-import type { ContactInput, ContactItem, Product, ProductInput, TutorialInput, TutorialItem } from '../types/content'
+import type {
+  ContactInput,
+  ContactItem,
+  Product,
+  ProductInput,
+  RedeemBatch,
+  RedeemBatchInput,
+  RedeemCode,
+  TutorialInput,
+  TutorialItem,
+} from '../types/content'
 
 type AdminContentResponse = {
   products: Product[]
   tutorials: TutorialItem[]
   contacts: ContactItem[]
+}
+
+type AdminRedeemResponse = {
+  batches: RedeemBatch[]
 }
 
 const uploadKindMap = {
@@ -15,6 +29,10 @@ const uploadKindMap = {
 
 export async function getAdminData() {
   return apiGet<AdminContentResponse>('/api/admin/content')
+}
+
+export async function getRedeemData() {
+  return apiGet<AdminRedeemResponse>('/api/admin/redeem')
 }
 
 export async function saveProduct(input: ProductInput) {
@@ -51,6 +69,26 @@ export async function saveContact(input: ContactInput) {
 
 export async function deleteContact(id: string) {
   await apiDelete<{ ok: true }>(`/api/admin/contacts/${id}`)
+}
+
+export async function saveRedeemBatch(input: RedeemBatchInput) {
+  const data = input.id
+    ? await apiPut<{ batch: RedeemBatch }>(`/api/admin/redeem-batches/${input.id}`, input)
+    : await apiPost<{ batch: RedeemBatch }>('/api/admin/redeem-batches', input)
+
+  return data.batch
+}
+
+export async function generateRedeemCodes(batchId: string, count: number) {
+  const data = await apiPost<{ codes: RedeemCode[] }>(`/api/admin/redeem-batches/${batchId}/codes`, {
+    count,
+  })
+
+  return data.codes
+}
+
+export async function deleteRedeemCode(id: string) {
+  await apiDelete<{ ok: true }>(`/api/admin/redeem-codes/${id}`)
 }
 
 export async function uploadPublicFile(bucket: keyof typeof uploadKindMap, folder: string, file: File) {

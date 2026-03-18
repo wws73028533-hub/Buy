@@ -17,6 +17,11 @@ const TutorialsPage = lazy(async () => {
   return { default: module.TutorialsPage }
 })
 
+const RedeemPage = lazy(async () => {
+  const module = await import('./pages/RedeemPage')
+  return { default: module.RedeemPage }
+})
+
 const SupportPage = lazy(async () => {
   const module = await import('./pages/SupportPage')
   return { default: module.SupportPage }
@@ -64,6 +69,14 @@ function App() {
           element={
             <LazyPage>
               <TutorialsPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/redeem"
+          element={
+            <LazyPage>
+              <RedeemPage />
             </LazyPage>
           }
         />

@@ -6,10 +6,11 @@ const navItems = [
   { to: '/', label: '首页' },
   { to: '/products', label: '全部商品' },
   { to: '/tutorials', label: '使用指南' },
+  { to: '/redeem', label: '兑换码' },
   { to: '/support', label: '咨询售后' },
 ]
 
-const serviceHighlights = ['售前咨询', '使用指南', '售后支持']
+const serviceHighlights = ['售前咨询', '使用指南', '兑换码核销', '售后支持']
 
 export function SiteShell() {
   return (
@@ -33,7 +34,7 @@ export function SiteShell() {
             <Link to="/" className="text-lg font-semibold tracking-tight text-slate-900">
               甄选好物馆
             </Link>
-            <p className="mt-1 text-xs text-slate-500">先看商品亮点，再看使用指南，需要帮助时也能快速找到人。</p>
+            <p className="mt-1 text-xs text-slate-500">先看商品亮点、使用指南和兑换码入口，需要帮助时也能快速找到人。</p>
           </div>
 
           <nav className="flex flex-wrap items-center gap-2 rounded-[1.25rem] border border-slate-200/80 bg-white/90 p-1.5 shadow-sm">
@@ -66,7 +67,7 @@ export function SiteShell() {
           <div>
             <p className="text-base font-semibold text-slate-900">甄选好物馆</p>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              把商品亮点、使用指南和咨询售后入口分开展示，让你在选购前看得更清楚，购买后也更省心。
+              把商品亮点、使用指南、兑换码入口和咨询售后入口分开展示，让你在选购前后都能更快找到所需内容。
             </p>
           </div>
 

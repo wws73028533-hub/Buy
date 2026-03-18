@@ -53,6 +53,27 @@ create table if not exists public.contact_items (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.redeem_batches (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  content_json jsonb not null default '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.redeem_codes (
+  id uuid primary key default gen_random_uuid(),
+  batch_id uuid not null references public.redeem_batches(id) on delete cascade,
+  code text not null unique,
+  normalized_code text not null unique,
+  redeemed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_redeem_codes_batch_id on public.redeem_codes(batch_id);
+create index if not exists idx_redeem_codes_redeemed_at on public.redeem_codes(redeemed_at);
+
 drop trigger if exists set_products_updated_at on public.products;
 create trigger set_products_updated_at
 before update on public.products
@@ -66,4 +87,14 @@ for each row execute function public.set_current_timestamp_updated_at();
 drop trigger if exists set_contact_items_updated_at on public.contact_items;
 create trigger set_contact_items_updated_at
 before update on public.contact_items
+for each row execute function public.set_current_timestamp_updated_at();
+
+drop trigger if exists set_redeem_batches_updated_at on public.redeem_batches;
+create trigger set_redeem_batches_updated_at
+before update on public.redeem_batches
+for each row execute function public.set_current_timestamp_updated_at();
+
+drop trigger if exists set_redeem_codes_updated_at on public.redeem_codes;
+create trigger set_redeem_codes_updated_at
+before update on public.redeem_codes
 for each row execute function public.set_current_timestamp_updated_at();
