@@ -37,6 +37,14 @@ SESSION_SECRET=change-this-in-production
 PORT=3001
 ```
 
+可选生产环境变量：
+
+```bash
+# HOST=0.0.0.0
+# TRUST_PROXY=1
+# UPLOADS_DIR=/var/www/buy/uploads
+```
+
 ### 2）启动前后端开发环境
 
 ```bash
@@ -65,7 +73,7 @@ npm run dev
 
 服务端启动时会自动执行：
 
-- `/Users/saksk/Desktop/project/Buy/postgres/init.sql`
+- `postgres/init.sql`
 
 也就是：
 
@@ -80,7 +88,7 @@ npm run dev
 ### 最小可用方案
 
 1. 准备一台公网 Linux 服务器
-2. 安装：Node.js、Docker、Docker Compose
+2. 安装：Node.js 20+、Docker、Docker Compose
 3. 启动 PostgreSQL：
 
 ```bash
@@ -88,29 +96,35 @@ docker compose up -d postgres
 ```
 
 4. 配置 `.env`
+   - 必须修改：`ADMIN_EMAIL`、`ADMIN_PASSWORD`、`SESSION_SECRET`
+   - 如需外网直连 Node 服务，可设置 `HOST=0.0.0.0`
+   - 如通过 Nginx / SLB / 反向代理转发，请设置 `TRUST_PROXY=1`
+   - 如需把上传目录放到独立磁盘，可设置 `UPLOADS_DIR=/your/path/uploads`
 5. 构建前端和后端：
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
 
-6. 启动服务：
+6. 启动生产服务：
 
 ```bash
 npm start
 ```
 
+> `npm start` 会强制以生产模式启动后端，并读取 `server-dist/index.js`。
+
 默认监听：
 
-- `3001`
+- `0.0.0.0:3001`（生产环境）
 
-你可以再配 Nginx，把域名反代到 `3001`。
+建议再配 Nginx，把域名反代到 `3001`，并开启 HTTPS。
 
 ## 文件与数据位置
 
 - PostgreSQL 数据：Docker volume `buy_postgres_data`
-- 上传文件目录：`/Users/saksk/Desktop/project/Buy/uploads`
+- 上传文件目录：项目根目录下的 `uploads/`（可通过 `UPLOADS_DIR` 改为 Linux 绝对路径）
 
 > 正式部署时请注意备份数据库和 `uploads/` 目录。
 
@@ -126,7 +140,7 @@ npm start
 ```bash
 npm run dev        # 前后端开发模式
 npm run build      # 构建前端 + 后端
-npm start          # 启动生产服务
+npm start          # 强制以生产模式启动服务
 npm run lint       # 代码检查
 npm run db:up      # 启动 PostgreSQL 容器
 npm run db:down    # 停止 PostgreSQL 容器

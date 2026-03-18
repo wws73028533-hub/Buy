@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "server-dist",
-    "rootDir": ".",
+    "rootDir": "server",
     "types": ["node"],
     "strict": true,
     "skipLibCheck": true,
@@ -14,5 +14,6 @@
     "noEmit": false,
     "isolatedModules": true
   },
-  "include": ["server/**/*.ts"]
+  "include": ["server/**/*.ts"],
+  "exclude": ["server/**/*.test.ts"]
 }

@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 
 import { Pool } from 'pg'
 
@@ -10,7 +9,6 @@ export const pool = new Pool({
 })
 
 export async function initializeDatabase() {
-  const sqlPath = path.resolve(process.cwd(), 'postgres', 'init.sql')
-  const sql = await readFile(sqlPath, 'utf8')
+  const sql = await readFile(config.initSqlPath, 'utf8')
   await pool.query(sql)
 }

@@ -74,6 +74,8 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 })
 
+app.set('trust proxy', config.trustProxy)
+
 const REDEEM_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
 const REDEEM_RATE_LIMIT_MAX_REQUESTS = 20
 const REDEEM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -995,8 +997,10 @@ async function bootstrap() {
   await initializeDatabase()
   await seedDefaultShowcaseContent(pool)
 
-  app.listen(config.port, () => {
-    console.log(`Server running at http://127.0.0.1:${config.port}`)
+  app.listen(config.port, config.host, () => {
+    console.log(
+      `Server running in ${config.isProduction ? 'production' : 'development'} mode at http://${config.host}:${config.port}`,
+    )
   })
 }
 
