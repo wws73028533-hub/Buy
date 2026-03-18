@@ -48,25 +48,15 @@ type ContactItem = {
   updatedAt: string
 }
 
-type RedeemBatchRecord = {
+type RedeemItemRecord = {
   id: string
-  title: string
-  contentJson: Record<string, unknown>
-  createdAt: string
-  updatedAt: string
-}
-
-type RedeemCode = {
-  id: string
-  batchId: string
+  productId: string
+  productTitle: string
   code: string
+  contentJson: Record<string, unknown>
   redeemedAt: string | null
   createdAt: string
   updatedAt: string
-}
-
-type RedeemBatch = RedeemBatchRecord & {
-  codes: RedeemCode[]
 }
 
 type Redemption = {
@@ -126,21 +116,15 @@ const contactColumns = `
   updated_at as "updatedAt"
 `
 
-const redeemBatchColumns = `
-  id,
-  title,
-  content_json as "contentJson",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
-`
-
-const redeemCodeColumns = `
-  id,
-  batch_id as "batchId",
-  code,
-  redeemed_at as "redeemedAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+const redeemItemColumns = `
+  item.id,
+  item.product_id as "productId",
+  product.title as "productTitle",
+  item.code,
+  item.content_json as "contentJson",
+  item.redeemed_at as "redeemedAt",
+  item.created_at as "createdAt",
+  item.updated_at as "updatedAt"
 `
 
 function badRequest(message: string) {
@@ -297,20 +281,38 @@ function normalizeContactInput(body: unknown) {
   }
 }
 
-function normalizeRedeemBatchInput(body: unknown) {
+function normalizeRedeemItemInput(body: unknown) {
   const input = body as Record<string, unknown>
 
   return {
-    title: readString(input.title, '兑换内容标题'),
+    productId: readString(input.productId, '商品ID'),
     contentJson: readObject(input.contentJson, '兑换内容'),
   }
 }
 
-function normalizeRedeemCodeGenerationInput(body: unknown) {
+function normalizeRedeemItemBulkInput(body: unknown) {
   const input = body as Record<string, unknown>
 
   return {
+    productId: readString(input.productId, '商品ID'),
     count: readIntegerInRange(input.count, '生成数量', 1, 200),
+  }
+}
+
+function createDefaultRedeemContent() {
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: '请填写这个兑换码专属的账号、密码、登录方式、步骤和注意事项。每个兑换码都应该维护自己的独立内容。',
+          },
+        ],
+      },
+    ],
   }
 }
 
@@ -362,20 +364,6 @@ function enforceRedeemRateLimit(request: express.Request) {
   })
 }
 
-function mergeRedeemData(batches: RedeemBatchRecord[], codes: RedeemCode[]): RedeemBatch[] {
-  const codesByBatchId = new Map<string, RedeemCode[]>()
-
-  for (const code of codes) {
-    const existing = codesByBatchId.get(code.batchId) ?? []
-    codesByBatchId.set(code.batchId, [...existing, code])
-  }
-
-  return batches.map((batch) => ({
-    ...batch,
-    codes: codesByBatchId.get(batch.id) ?? [],
-  }))
-}
-
 async function listHomepageData() {
   const [productsResult, tutorialsResult, contactsResult] = await Promise.all([
     pool.query<Product>(
@@ -411,60 +399,67 @@ async function listAdminData() {
   }
 }
 
+async function listRedeemItemsByIds(ids: string[]) {
+  if (ids.length === 0) {
+    return []
+  }
+
+  const result = await pool.query<RedeemItemRecord>(
+    `select ${redeemItemColumns}
+     from redeem_items as item
+     join products as product on product.id = item.product_id
+     where item.id = any($1::uuid[])
+     order by item.redeemed_at asc nulls first, item.updated_at desc, item.created_at desc`,
+    [ids],
+  )
+
+  return result.rows
+}
+
 async function listRedeemData() {
-  const [batchesResult, codesResult] = await Promise.all([
-    pool.query<RedeemBatchRecord>(`select ${redeemBatchColumns} from redeem_batches order by updated_at desc, created_at desc`),
-    pool.query<RedeemCode>(
-      `select ${redeemCodeColumns} from redeem_codes order by redeemed_at asc nulls first, created_at desc`,
-    ),
-  ])
-
-  return {
-    batches: mergeRedeemData(batchesResult.rows, codesResult.rows),
-  }
-}
-
-async function getRedeemBatchById(id: string): Promise<RedeemBatch | null> {
-  const batchResult = await pool.query<RedeemBatchRecord>(
-    `select ${redeemBatchColumns} from redeem_batches where id = $1 limit 1`,
-    [id],
-  )
-
-  const batch = batchResult.rows[0]
-
-  if (!batch) {
-    return null
-  }
-
-  const codesResult = await pool.query<RedeemCode>(
-    `select ${redeemCodeColumns} from redeem_codes where batch_id = $1 order by redeemed_at asc nulls first, created_at desc`,
-    [id],
+  const result = await pool.query<RedeemItemRecord>(
+    `select ${redeemItemColumns}
+     from redeem_items as item
+     join products as product on product.id = item.product_id
+     order by item.redeemed_at asc nulls first, item.updated_at desc, item.created_at desc`,
   )
 
   return {
-    ...batch,
-    codes: codesResult.rows,
+    items: result.rows,
   }
 }
 
-async function createRedeemCodes(batchId: string, count: number) {
+async function getRedeemItemById(id: string) {
+  const result = await pool.query<RedeemItemRecord>(
+    `select ${redeemItemColumns}
+     from redeem_items as item
+     join products as product on product.id = item.product_id
+     where item.id = $1
+     limit 1`,
+    [id],
+  )
+
+  return result.rows[0] ?? null
+}
+
+async function createRedeemItems(productId: string, count: number) {
   const client = await pool.connect()
 
   try {
     await client.query('begin')
 
-    const batchResult = await client.query<{ id: string }>('select id from redeem_batches where id = $1 limit 1', [batchId])
+    const productResult = await client.query<{ id: string }>('select id from products where id = $1 limit 1', [productId])
 
-    if (!batchResult.rows[0]) {
-      throw badRequest('兑换模板不存在')
+    if (!productResult.rows[0]) {
+      throw badRequest('商品不存在')
     }
 
-    const codes: RedeemCode[] = []
+    const itemIds: string[] = []
     const generated = new Set<string>()
     const maxAttempts = count * 40
     let attempts = 0
 
-    while (codes.length < count) {
+    while (itemIds.length < count) {
       if (attempts >= maxAttempts) {
         throw badRequest('兑换码生成失败，请稍后重试')
       }
@@ -478,14 +473,14 @@ async function createRedeemCodes(batchId: string, count: number) {
       }
 
       try {
-        const result = await client.query<RedeemCode>(
-          `insert into redeem_codes (batch_id, code, normalized_code)
-           values ($1, $2, $3)
-           returning ${redeemCodeColumns}`,
-          [batchId, code, normalizedCode],
+        const result = await client.query<{ id: string }>(
+          `insert into redeem_items (product_id, code, normalized_code, content_json)
+           values ($1, $2, $3, $4)
+           returning id`,
+          [productId, code, normalizedCode, createDefaultRedeemContent()],
         )
 
-        codes.push(result.rows[0])
+        itemIds.push(result.rows[0].id)
         generated.add(normalizedCode)
       } catch (error) {
         const pgError = error as Error & { code?: string }
@@ -499,13 +494,61 @@ async function createRedeemCodes(batchId: string, count: number) {
     }
 
     await client.query('commit')
-    return codes
+    return await listRedeemItemsByIds(itemIds)
   } catch (error) {
     await client.query('rollback')
     throw error
   } finally {
     client.release()
   }
+}
+
+async function saveRedeemItem(id: string, input: ReturnType<typeof normalizeRedeemItemInput>) {
+  const productResult = await pool.query<{ id: string }>('select id from products where id = $1 limit 1', [input.productId])
+
+  if (!productResult.rows[0]) {
+    throw badRequest('商品不存在')
+  }
+
+  const result = await pool.query<{ id: string }>(
+    `update redeem_items
+     set product_id = $2,
+         content_json = $3
+     where id = $1
+       and redeemed_at is null
+     returning id`,
+    [id, input.productId, input.contentJson],
+  )
+
+  if (!result.rows[0]) {
+    const existingResult = await pool.query<{ id: string; redeemedAt: string | null }>(
+      `select id, redeemed_at as "redeemedAt"
+       from redeem_items
+       where id = $1
+       limit 1`,
+      [id],
+    )
+
+    const existing = existingResult.rows[0]
+
+    if (!existing) {
+      throw badRequest('兑换码不存在')
+    }
+
+    if (existing.redeemedAt) {
+      throw badRequest('已兑换的兑换码不能再修改')
+    }
+
+    throw badRequest('兑换码保存失败')
+  }
+
+  const item = await getRedeemItemById(id)
+
+  if (!item) {
+    throw badRequest('兑换码不存在')
+  }
+
+  return item
 }
 
 async function redeemCodeByValue(normalizedCode: string) {
@@ -515,15 +558,15 @@ async function redeemCodeByValue(normalizedCode: string) {
     await client.query('begin')
 
     const result = await client.query<Redemption>(
-      `update redeem_codes as code
+      `update redeem_items as item
        set redeemed_at = now()
-       from redeem_batches as batch
-       where code.normalized_code = $1
-         and code.redeemed_at is null
-         and code.batch_id = batch.id
-       returning batch.title as title,
-                 batch.content_json as "contentJson",
-                 code.redeemed_at as "redeemedAt"`,
+       from products as product
+       where item.normalized_code = $1
+         and item.redeemed_at is null
+         and item.product_id = product.id
+       returning product.title as title,
+                 item.content_json as "contentJson",
+                 item.redeemed_at as "redeemedAt"`,
       [normalizedCode],
     )
 
@@ -720,6 +763,15 @@ app.put('/api/admin/products/:id', requireAdmin, async (request, response, next)
 
 app.delete('/api/admin/products/:id', requireAdmin, async (request, response, next) => {
   try {
+    const linkedRedeemItemResult = await pool.query<{ id: string }>(
+      'select id from redeem_items where product_id = $1 limit 1',
+      [request.params.id],
+    )
+
+    if (linkedRedeemItemResult.rows[0]) {
+      throw badRequest('该商品已关联兑换码，请先删除或调整相关兑换码')
+    }
+
     await pool.query('delete from products where id = $1', [request.params.id])
     response.json({ ok: true })
   } catch (error) {
@@ -829,64 +881,33 @@ app.delete('/api/admin/contacts/:id', requireAdmin, async (request, response, ne
   }
 })
 
-app.post('/api/admin/redeem-batches', requireAdmin, async (request, response, next) => {
+app.post('/api/admin/redeem-items/bulk', requireAdmin, async (request, response, next) => {
   try {
-    const input = normalizeRedeemBatchInput(request.body)
-    const result = await pool.query<RedeemBatchRecord>(
-      `insert into redeem_batches (title, content_json)
-       values ($1, $2)
-       returning ${redeemBatchColumns}`,
-      [input.title, input.contentJson],
-    )
+    const input = normalizeRedeemItemBulkInput(request.body)
+    const items = await createRedeemItems(input.productId, input.count)
 
-    const batch = await getRedeemBatchById(result.rows[0].id)
-
-    response.json({ batch })
+    response.json({ items })
   } catch (error) {
     next(error)
   }
 })
 
-app.put('/api/admin/redeem-batches/:id', requireAdmin, async (request, response, next) => {
+app.put('/api/admin/redeem-items/:id', requireAdmin, async (request, response, next) => {
   try {
-    const input = normalizeRedeemBatchInput(request.body)
-    const result = await pool.query<RedeemBatchRecord>(
-      `update redeem_batches
-       set title = $2,
-           content_json = $3
-       where id = $1
-       returning ${redeemBatchColumns}`,
-      [request.params.id, input.title, input.contentJson],
-    )
+    const input = normalizeRedeemItemInput(request.body)
+    const itemId = readString(request.params.id, '兑换码ID')
+    const item = await saveRedeemItem(itemId, input)
 
-    if (!result.rows[0]) {
-      throw badRequest('兑换模板不存在')
-    }
-
-    const batch = await getRedeemBatchById(result.rows[0].id)
-
-    response.json({ batch })
+    response.json({ item })
   } catch (error) {
     next(error)
   }
 })
 
-app.post('/api/admin/redeem-batches/:id/codes', requireAdmin, async (request, response, next) => {
-  try {
-    const input = normalizeRedeemCodeGenerationInput(request.body)
-    const batchId = readString(request.params.id, '兑换模板ID')
-    const codes = await createRedeemCodes(batchId, input.count)
-
-    response.json({ codes })
-  } catch (error) {
-    next(error)
-  }
-})
-
-app.delete('/api/admin/redeem-codes/:id', requireAdmin, async (request, response, next) => {
+app.delete('/api/admin/redeem-items/:id', requireAdmin, async (request, response, next) => {
   try {
     const result = await pool.query<{ id: string }>(
-      'delete from redeem_codes where id = $1 and redeemed_at is null returning id',
+      'delete from redeem_items where id = $1 and redeemed_at is null returning id',
       [request.params.id],
     )
 

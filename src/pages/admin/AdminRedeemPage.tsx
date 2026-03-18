@@ -8,15 +8,15 @@ import { usePageMeta } from '../../hooks/usePageMeta'
 export function AdminRedeemPage() {
   usePageMeta({
     title: '兑换码管理',
-    description: '维护兑换模板、批量生成兑换码与核销状态。',
+    description: '维护一对一兑换码、商品关联与核销状态。',
   })
 
-  const { error, loading, redeemBatches, refresh, setRedeemBatches } = useAdminData()
+  const { error, loading, products, redeemItems, refresh, setRedeemItems } = useAdminData()
 
   return (
     <AdminSectionPage
       title="兑换码"
-      description="统一维护兑换模板和随机兑换码。保存模板后即可批量生成新码，核销状态也会在这里实时展示。"
+      description="统一维护一对一兑换码。先按商品批量生成空白码，再逐条补充账号、密码、步骤等专属内容。"
       action={
         <Link
           to="/redeem"
@@ -31,7 +31,7 @@ export function AdminRedeemPage() {
       errorTitle="兑换码管理加载失败"
       onRetry={() => void refresh()}
     >
-      <RedeemManager items={redeemBatches} onChange={setRedeemBatches} />
+      <RedeemManager items={redeemItems} products={products} onChange={setRedeemItems} />
     </AdminSectionPage>
   )
 }

@@ -4,9 +4,9 @@ import type {
   ContactItem,
   Product,
   ProductInput,
-  RedeemBatch,
-  RedeemBatchInput,
-  RedeemCode,
+  RedeemItem,
+  RedeemItemBulkInput,
+  RedeemItemInput,
   TutorialInput,
   TutorialItem,
 } from '../types/content'
@@ -18,7 +18,7 @@ type AdminContentResponse = {
 }
 
 type AdminRedeemResponse = {
-  batches: RedeemBatch[]
+  items: RedeemItem[]
 }
 
 const uploadKindMap = {
@@ -71,24 +71,22 @@ export async function deleteContact(id: string) {
   await apiDelete<{ ok: true }>(`/api/admin/contacts/${id}`)
 }
 
-export async function saveRedeemBatch(input: RedeemBatchInput) {
-  const data = input.id
-    ? await apiPut<{ batch: RedeemBatch }>(`/api/admin/redeem-batches/${input.id}`, input)
-    : await apiPost<{ batch: RedeemBatch }>('/api/admin/redeem-batches', input)
+export async function saveRedeemItem(input: RedeemItemInput) {
+  if (!input.id) {
+    throw new Error('缺少兑换码 ID，无法保存')
+  }
 
-  return data.batch
+  const data = await apiPut<{ item: RedeemItem }>(`/api/admin/redeem-items/${input.id}`, input)
+  return data.item
 }
 
-export async function generateRedeemCodes(batchId: string, count: number) {
-  const data = await apiPost<{ codes: RedeemCode[] }>(`/api/admin/redeem-batches/${batchId}/codes`, {
-    count,
-  })
-
-  return data.codes
+export async function createRedeemItems(input: RedeemItemBulkInput) {
+  const data = await apiPost<{ items: RedeemItem[] }>('/api/admin/redeem-items/bulk', input)
+  return data.items
 }
 
-export async function deleteRedeemCode(id: string) {
-  await apiDelete<{ ok: true }>(`/api/admin/redeem-codes/${id}`)
+export async function deleteRedeemItem(id: string) {
+  await apiDelete<{ ok: true }>(`/api/admin/redeem-items/${id}`)
 }
 
 export async function uploadPublicFile(bucket: keyof typeof uploadKindMap, folder: string, file: File) {

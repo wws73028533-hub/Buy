@@ -40,20 +40,13 @@ export interface ContactItem {
   updatedAt: string
 }
 
-export interface RedeemCode {
+export interface RedeemItem {
   id: string
-  batchId: string
+  productId: string
+  productTitle: string
   code: string
-  redeemedAt: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface RedeemBatch {
-  id: string
-  title: string
   contentJson: RichTextJson
-  codes: RedeemCode[]
+  redeemedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -96,8 +89,13 @@ export interface ContactInput {
   isPublished: boolean
 }
 
-export interface RedeemBatchInput {
+export interface RedeemItemInput {
   id?: string
-  title: string
+  productId: string
   contentJson: RichTextJson
+}
+
+export interface RedeemItemBulkInput {
+  productId: string
+  count: number
 }

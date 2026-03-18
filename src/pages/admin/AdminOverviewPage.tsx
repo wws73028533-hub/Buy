@@ -30,9 +30,9 @@ export function AdminOverviewPage() {
       hint: `已发布 ${summary.tutorials.published} 个`,
     },
     {
-      label: '兑换模板',
-      value: summary.redeem.batches,
-      hint: `待兑换码 ${summary.redeem.pendingCodes} 个`,
+      label: '兑换码',
+      value: summary.redeem.totalCodes,
+      hint: `待兑换 ${summary.redeem.pendingCodes} 个`,
     },
     {
       label: '服务入口',
@@ -89,7 +89,7 @@ export function AdminOverviewPage() {
                       : item.key === 'tutorials'
                         ? `共 ${summary.tutorials.total} 个使用指南，已发布 ${summary.tutorials.published} 个`
                         : item.key === 'redeem'
-                          ? `共 ${summary.redeem.batches} 组模板，待兑换码 ${summary.redeem.pendingCodes} 个`
+                          ? `共 ${summary.redeem.totalCodes} 个兑换码，待兑换 ${summary.redeem.pendingCodes} 个`
                           : `共 ${summary.contacts.total} 个服务入口，已发布 ${summary.contacts.published} 个`
 
                   return (
@@ -107,14 +107,14 @@ export function AdminOverviewPage() {
             <section className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
               <h2 className="text-lg font-semibold text-emerald-950">数据状态</h2>
               <p className="mt-3 text-sm leading-6 text-emerald-800">
-                当前后台内容已连接 <strong>PostgreSQL 数据库</strong>，你在这里保存的商品、教程、兑换模板与服务入口会直接同步到前台展示与兑换流程。
+                当前后台内容已连接 <strong>PostgreSQL 数据库</strong>，你在这里保存的商品、教程、兑换码与服务入口会直接同步到前台展示与兑换流程。
               </p>
             </section>
 
             <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">当前会话</h2>
               <p className="mt-3 text-sm leading-6 text-slate-500">当前登录账号：{session?.user.email ?? '管理员账号'}。</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">建议优先检查商品、指南、兑换模板和咨询售后 4 个模块是否都已配置完毕。</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">建议优先检查商品、指南、兑换码和咨询售后 4 个模块是否都已配置完毕。</p>
             </section>
 
             {usingDefaultAdmin ? (

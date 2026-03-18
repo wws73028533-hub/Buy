@@ -5,22 +5,21 @@ import { describe, expect, it, vi } from 'vitest'
 import { AdminDataContext } from '../contexts/AdminDataContextObject'
 import type { AdminDataContextValue } from '../contexts/adminData'
 import { AuthContext } from '../contexts/AuthContextObject'
-import type { ContactItem, Product, RedeemBatch, TutorialItem } from '../types/content'
 import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage'
+import type { ContactItem, Product, RedeemItem, TutorialItem } from '../types/content'
 
 function createAdminDataValue({
   products,
   tutorials,
   contacts,
-  redeemBatches,
+  redeemItems,
 }: {
   products: Product[]
   tutorials: TutorialItem[]
   contacts: ContactItem[]
-  redeemBatches: RedeemBatch[]
+  redeemItems: RedeemItem[]
 }): AdminDataContextValue {
-  const totalCodes = redeemBatches.flatMap((item) => item.codes)
-  const redeemedCodes = totalCodes.filter((item) => item.redeemedAt).length
+  const redeemedCodes = redeemItems.filter((item) => item.redeemedAt).length
 
   return {
     loading: false,
@@ -28,7 +27,7 @@ function createAdminDataValue({
     products,
     tutorials,
     contacts,
-    redeemBatches,
+    redeemItems,
     summary: {
       products: {
         total: products.length,
@@ -43,9 +42,8 @@ function createAdminDataValue({
         published: contacts.filter((item) => item.isPublished).length,
       },
       redeem: {
-        batches: redeemBatches.length,
-        totalCodes: totalCodes.length,
-        pendingCodes: totalCodes.length - redeemedCodes,
+        totalCodes: redeemItems.length,
+        pendingCodes: redeemItems.length - redeemedCodes,
         redeemedCodes,
       },
     },
@@ -53,7 +51,7 @@ function createAdminDataValue({
     setProducts: vi.fn(),
     setTutorials: vi.fn(),
     setContacts: vi.fn(),
-    setRedeemBatches: vi.fn(),
+    setRedeemItems: vi.fn(),
   }
 }
 
@@ -97,12 +95,24 @@ describe('AdminOverviewPage', () => {
       ],
       tutorials: [],
       contacts: [],
-      redeemBatches: [],
+      redeemItems: [
+        {
+          id: 'r1',
+          productId: 'p1',
+          productTitle: '商品 1',
+          code: 'ABCD-EFGH-JKLM',
+          contentJson: {},
+          redeemedAt: null,
+          createdAt: '2026-03-18T00:00:00.000Z',
+          updatedAt: '2026-03-18T00:00:00.000Z',
+        },
+      ],
     })
 
     const { rerender } = renderOverview(firstValue)
 
     expect(screen.getByText('共 1 个商品，已发布 1 个')).toBeInTheDocument()
+    expect(screen.getByText('共 1 个兑换码，待兑换 1 个')).toBeInTheDocument()
 
     const secondValue = createAdminDataValue({
       products: [
@@ -135,7 +145,28 @@ describe('AdminOverviewPage', () => {
       ],
       tutorials: [],
       contacts: [],
-      redeemBatches: [],
+      redeemItems: [
+        {
+          id: 'r1',
+          productId: 'p1',
+          productTitle: '商品 1',
+          code: 'ABCD-EFGH-JKLM',
+          contentJson: {},
+          redeemedAt: null,
+          createdAt: '2026-03-18T00:00:00.000Z',
+          updatedAt: '2026-03-18T00:00:00.000Z',
+        },
+        {
+          id: 'r2',
+          productId: 'p2',
+          productTitle: '商品 2',
+          code: 'MNOP-QRST-UVWX',
+          contentJson: {},
+          redeemedAt: '2026-03-18T02:00:00.000Z',
+          createdAt: '2026-03-18T01:00:00.000Z',
+          updatedAt: '2026-03-18T02:00:00.000Z',
+        },
+      ],
     })
 
     rerender(
@@ -157,5 +188,6 @@ describe('AdminOverviewPage', () => {
     )
 
     expect(screen.getByText('共 2 个商品，已发布 2 个')).toBeInTheDocument()
+    expect(screen.getByText('共 2 个兑换码，待兑换 1 个')).toBeInTheDocument()
   })
 })

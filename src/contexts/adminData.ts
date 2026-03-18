@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { ContactItem, Product, RedeemBatch, TutorialItem } from '../types/content'
+import type { ContactItem, Product, RedeemItem, TutorialItem } from '../types/content'
 
 export type AdminContentSummary = {
   total: number
@@ -8,7 +8,6 @@ export type AdminContentSummary = {
 }
 
 export type AdminRedeemSummary = {
-  batches: number
   totalCodes: number
   pendingCodes: number
   redeemedCodes: number
@@ -27,11 +26,11 @@ export type AdminDataContextValue = {
   products: Product[]
   tutorials: TutorialItem[]
   contacts: ContactItem[]
-  redeemBatches: RedeemBatch[]
+  redeemItems: RedeemItem[]
   summary: AdminSummary
   refresh: () => Promise<void>
   setProducts: Dispatch<SetStateAction<Product[]>>
   setTutorials: Dispatch<SetStateAction<TutorialItem[]>>
   setContacts: Dispatch<SetStateAction<ContactItem[]>>
-  setRedeemBatches: Dispatch<SetStateAction<RedeemBatch[]>>
+  setRedeemItems: Dispatch<SetStateAction<RedeemItem[]>>
 }

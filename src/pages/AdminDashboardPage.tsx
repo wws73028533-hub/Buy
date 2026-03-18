@@ -10,14 +10,14 @@ import { SectionCard } from '../components/SectionCard'
 import { useAuth } from '../contexts/useAuth'
 import { usePageMeta } from '../hooks/usePageMeta'
 import { getAdminData, getRedeemData } from '../services/adminApi'
-import type { ContactItem, Product, RedeemBatch, TutorialItem } from '../types/content'
+import type { ContactItem, Product, RedeemItem, TutorialItem } from '../types/content'
 
 type AdminTab = 'products' | 'tutorials' | 'redeem' | 'contacts'
 
 const tabs: Array<{ key: AdminTab; label: string; hint: string }> = [
   { key: 'products', label: '商品展示', hint: '封面、标题、卖点说明' },
   { key: 'tutorials', label: '使用指南', hint: '图文链接或资料入口' },
-  { key: 'redeem', label: '兑换码', hint: '模板内容、随机码、核销状态' },
+  { key: 'redeem', label: '兑换码', hint: '一对一内容、商品关联、核销状态' },
   { key: 'contacts', label: '咨询售后', hint: '文字、链接、二维码' },
 ]
 
@@ -31,7 +31,7 @@ export function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('products')
   const [products, setProducts] = useState<Product[]>([])
   const [tutorials, setTutorials] = useState<TutorialItem[]>([])
-  const [redeemBatches, setRedeemBatches] = useState<RedeemBatch[]>([])
+  const [redeemItems, setRedeemItems] = useState<RedeemItem[]>([])
   const [contacts, setContacts] = useState<ContactItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +50,7 @@ export function AdminDashboardPage() {
         setProducts(contentData.products)
         setTutorials(contentData.tutorials)
         setContacts(contentData.contacts)
-        setRedeemBatches(redeemData.batches)
+        setRedeemItems(redeemData.items)
       } catch (loadError) {
         if (!active) {
           return
@@ -78,13 +78,13 @@ export function AdminDashboardPage() {
       case 'tutorials':
         return <TutorialManager items={tutorials} onChange={setTutorials} />
       case 'redeem':
-        return <RedeemManager items={redeemBatches} onChange={setRedeemBatches} />
+        return <RedeemManager items={redeemItems} products={products} onChange={setRedeemItems} />
       case 'contacts':
         return <ContactManager items={contacts} onChange={setContacts} />
       default:
         return null
     }
-  }, [activeTab, contacts, products, redeemBatches, tutorials])
+  }, [activeTab, contacts, products, redeemItems, tutorials])
 
   const stats = useMemo(
     () => [
@@ -99,9 +99,9 @@ export function AdminDashboardPage() {
         hint: `对外展示 ${tutorials.filter((item) => item.isPublished).length}`,
       },
       {
-        label: '兑换模板',
-        value: redeemBatches.length,
-        hint: `待兑换 ${redeemBatches.flatMap((item) => item.codes).filter((item) => !item.redeemedAt).length}`,
+        label: '兑换码',
+        value: redeemItems.length,
+        hint: `待兑换 ${redeemItems.filter((item) => !item.redeemedAt).length}`,
       },
       {
         label: '服务入口',
@@ -109,7 +109,7 @@ export function AdminDashboardPage() {
         hint: `对外展示 ${contacts.filter((item) => item.isPublished).length}`,
       },
     ],
-    [contacts, products, redeemBatches, tutorials],
+    [contacts, products, redeemItems, tutorials],
   )
 
   if (loading) {
@@ -129,7 +129,7 @@ export function AdminDashboardPage() {
             商家工作台
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            {session?.user.email ?? '商家账号'}，可在这里维护消费者看到的商品、指南、兑换码模板与服务内容。
+            {session?.user.email ?? '商家账号'}，可在这里维护消费者看到的商品、指南、兑换码与服务内容。
           </p>
         </div>
         <button
@@ -142,7 +142,7 @@ export function AdminDashboardPage() {
       </section>
 
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-800">
-        当前内容已连接 <strong>PostgreSQL 数据库</strong>，你在这里保存的商品、指南、兑换模板和服务入口会直接用于前台展示或兑换核销。
+        当前内容已连接 <strong>PostgreSQL 数据库</strong>，你在这里保存的商品、指南、兑换码和服务入口会直接用于前台展示或兑换核销。
       </section>
 
       {usingDefaultAdmin ? (
@@ -163,10 +163,10 @@ export function AdminDashboardPage() {
 
       <SectionCard
         title="前台内容管理"
-        description="维护消费者看到的商品、使用指南、兑换码模板和咨询售后入口。保存后，前台页面或兑换流程会自动更新。"
+        description="维护消费者看到的商品、使用指南、兑换码和咨询售后入口。保存后，前台页面或兑换流程会自动更新。"
       >
         <div className="mb-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-          建议先完成 4 步：① 放 1 款主推商品；② 补充新手上手指南；③ 配置 1 组兑换模板并生成随机码；④ 再补充至少 1 个咨询或售后入口。
+          建议先完成 4 步：① 放 1 款主推商品；② 补充新手上手指南；③ 先按商品生成兑换码，再逐条补充专属内容；④ 再补充至少 1 个咨询或售后入口。
         </div>
         <div className="mb-6 grid gap-3 lg:grid-cols-4">
           {tabs.map((tab) => (

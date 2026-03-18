@@ -38,7 +38,7 @@ export const adminNavigationItems: AdminNavItem[] = [
     key: 'redeem',
     to: '/admin/redeem',
     label: '兑换码',
-    description: '管理兑换模板、批量生成和核销状态。',
+    description: '管理一对一兑换码、商品关联与核销状态。',
     publicTo: '/redeem',
     publicLabel: '查看兑换页',
   },

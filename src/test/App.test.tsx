@@ -31,7 +31,7 @@ function mockAdminFetch() {
 
       if (url.includes('/api/admin/redeem')) {
         return createJsonResponse({
-          batches: [],
+          items: [],
         })
       }
 
