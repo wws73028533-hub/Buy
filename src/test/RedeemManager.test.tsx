@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -85,29 +85,40 @@ describe('RedeemManager', () => {
     render(<Harness />)
 
     fireEvent.change(screen.getByLabelText('生成模板'), { target: { value: 'custom' } })
-    fireEvent.change(screen.getByLabelText('模板账号'), { target: { value: 'shared-account@example.com' } })
-    fireEvent.change(screen.getByLabelText('模板密码'), { target: { value: 'Pass-123456' } })
-    fireEvent.change(screen.getByLabelText('模板 2FA'), { target: { value: '2FA-KEY' } })
+
+    const templateCards = screen.getAllByTestId('redeem-field-editor-card')
+    fireEvent.change(within(templateCards[0]).getByLabelText('字段标题'), { target: { value: '登录账号' } })
+    fireEvent.change(within(templateCards[0]).getByLabelText('字段内容'), { target: { value: 'shared-account@example.com' } })
+    fireEvent.change(within(templateCards[1]).getByLabelText('字段内容'), { target: { value: 'Pass-123456' } })
+    fireEvent.change(within(templateCards[2]).getByLabelText('字段内容'), { target: { value: '2FA-KEY' } })
     fireEvent.change(screen.getByLabelText('模板其他内容'), { target: { value: '统一步骤' } })
     fireEvent.click(screen.getByRole('button', { name: '批量生成兑换码' }))
 
     await waitFor(() => {
-      expect(createRedeemItemsMock).toHaveBeenCalledWith({
-        productId: 'p1',
-        count: 10,
-        contentJson: createRedeemContent({
-          account: 'shared-account@example.com',
-          password: 'Pass-123456',
-          twoFactorCode: '2FA-KEY',
-          otherContent: '统一步骤',
-        }),
-      })
+      expect(createRedeemItemsMock).toHaveBeenCalledTimes(1)
     })
+
+    const bulkInput = createRedeemItemsMock.mock.calls[0][0]
+    expect(bulkInput).toMatchObject({
+      productId: 'p1',
+      count: 10,
+      contentJson: expect.objectContaining({
+        schema: 'redeem-delivery-v2',
+        otherContent: '统一步骤',
+      }),
+    })
+    expect(bulkInput.contentJson.deliveryFields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: '登录账号', value: 'shared-account@example.com' }),
+        expect.objectContaining({ label: '密码', value: 'Pass-123456' }),
+        expect.objectContaining({ label: '2FA', value: '2FA-KEY' }),
+      ]),
+    )
 
     expect((await screen.findAllByText('AAAA-BBBB-CCCC')).length).toBeGreaterThan(0)
   })
 
-  it('已兑换码也可以继续保存修改', async () => {
+  it('已兑换码支持新增自定义字段并继续保存修改', async () => {
     const initialItems: RedeemItem[] = [
       {
         id: 'r1',
@@ -133,20 +144,39 @@ describe('RedeemManager', () => {
 
     const selects = screen.getAllByRole('combobox')
     fireEvent.change(selects.at(-1) as HTMLSelectElement, { target: { value: 'p2' } })
-    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'new@example.com' } })
+
+    const editorCardsBeforeAdd = screen.getAllByTestId('redeem-field-editor-card')
+    fireEvent.change(within(editorCardsBeforeAdd[0]).getByLabelText('字段标题'), { target: { value: '登录账号' } })
+    fireEvent.change(within(editorCardsBeforeAdd[0]).getByLabelText('字段内容'), { target: { value: 'new@example.com' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '新增展示字段' }))
+
+    const editorCardsAfterAdd = screen.getAllByTestId('redeem-field-editor-card')
+    const newCard = editorCardsAfterAdd.at(-1) as HTMLElement
+    fireEvent.change(within(newCard).getByLabelText('字段标题'), { target: { value: '备用邮箱' } })
+    fireEvent.change(within(newCard).getByLabelText('字段内容'), { target: { value: 'backup@example.com' } })
     fireEvent.change(screen.getByLabelText('其他内容'), { target: { value: '已更新' } })
     fireEvent.click(screen.getByRole('button', { name: '保存兑换内容' }))
 
     await waitFor(() => {
-      expect(saveRedeemItemMock).toHaveBeenCalledWith({
-        id: 'r1',
-        productId: 'p2',
-        contentJson: createRedeemContent({
-          account: 'new@example.com',
-          otherContent: '已更新',
-        }),
-      })
+      expect(saveRedeemItemMock).toHaveBeenCalledTimes(1)
     })
+
+    const saveInput = saveRedeemItemMock.mock.calls[0][0]
+    expect(saveInput).toMatchObject({
+      id: 'r1',
+      productId: 'p2',
+      contentJson: expect.objectContaining({
+        schema: 'redeem-delivery-v2',
+        otherContent: '已更新',
+      }),
+    })
+    expect(saveInput.contentJson.deliveryFields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: '登录账号', value: 'new@example.com' }),
+        expect.objectContaining({ label: '备用邮箱', value: 'backup@example.com' }),
+      ]),
+    )
 
     expect(await screen.findByText('商品：商品 2')).toBeInTheDocument()
   })

@@ -4,9 +4,8 @@ import { Link } from 'react-router-dom'
 import { EmptyState } from '../components/EmptyState'
 import { PublicPageHeader } from '../components/PublicPageHeader'
 import { SectionCard } from '../components/SectionCard'
-import { RichTextViewer } from '../components/rich-text/RichTextViewer'
+import { RedeemDeliveryContent } from '../components/redeem/RedeemDeliveryContent'
 import { usePageMeta } from '../hooks/usePageMeta'
-import { getRedeemContentDocument } from '../lib/redeemContent'
 import { formatDateTime } from '../lib/utils'
 import { redeemByCode } from '../services/publicApi'
 import type { RedeemResult } from '../types/content'
@@ -69,7 +68,7 @@ export function RedeemPage() {
       <PublicPageHeader
         badge="兑换码"
         title="拿到兑换码后，在这里直接兑换或查看交付记录。"
-        description="有些商品会通过兑换码发货。请输入卖家提供的兑换码，系统会直接展示对应的账号、密码、步骤或备注说明。"
+        description="有些商品会通过兑换码发货。请输入卖家提供的兑换码，系统会把账号、密码、2FA 等内容拆成独立卡片展示，并支持一键复制。"
         aside={
           <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
             首次使用后会标记为 <span className="font-semibold text-slate-900">已使用</span>，后续仍可查看记录
@@ -134,7 +133,7 @@ export function RedeemPage() {
       {redemption ? (
         <SectionCard title={redemption.title} description={resultDescription}>
           <div className="rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-6">
-            <RichTextViewer content={getRedeemContentDocument(redemption.contentJson)} />
+            <RedeemDeliveryContent content={redemption.contentJson} />
           </div>
           <div
             className={`mt-5 rounded-3xl px-5 py-4 text-sm leading-6 ${

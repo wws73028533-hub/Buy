@@ -318,13 +318,13 @@ function normalizeRedeemItemBulkInput(body: unknown) {
 
 function createDefaultRedeemContent() {
   return {
-    schema: 'redeem-delivery-v1',
-    fields: {
-      account: '',
-      password: '',
-      twoFactorCode: '',
-      otherContent: '',
-    },
+    schema: 'redeem-delivery-v2',
+    deliveryFields: [
+      { id: 'account', label: '账号', value: '' },
+      { id: 'password', label: '密码', value: '' },
+      { id: 'two-factor', label: '2FA', value: '' },
+    ],
+    otherContent: '',
     renderedContent: createEmptyRichTextDocument(),
   }
 }

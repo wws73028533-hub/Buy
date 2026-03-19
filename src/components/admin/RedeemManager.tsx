@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
+import { RedeemFieldListEditor } from './RedeemFieldListEditor'
+import { RedeemDeliveryContent } from '../redeem/RedeemDeliveryContent'
 import {
+  createDefaultRedeemContentFields,
   createRedeemContent,
-  EMPTY_REDEEM_CONTENT_FIELDS,
-  getRedeemContentDocument,
   readRedeemContentFields,
 } from '../../lib/redeemContent'
 import type { RedeemContentFields } from '../../lib/redeemContent'
 import { copyText, formatDateTime } from '../../lib/utils'
 import { createRedeemItems, deleteRedeemItem, saveRedeemItem } from '../../services/adminApi'
 import type { Product, RedeemItem, RedeemItemBulkInput, RedeemItemInput } from '../../types/content'
-import { RichTextViewer } from '../rich-text/RichTextViewer'
 
 function createDefaultRedeemContent(): RedeemItemInput['contentJson'] {
   return createRedeemContent()
@@ -46,40 +46,11 @@ function sortRedeemItems(items: RedeemItem[]) {
 
 type TemplateMode = 'blank' | 'custom'
 
-function FieldInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline = false,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder: string
-  multiline?: boolean
-}) {
-  return (
-    <label className={multiline ? 'block space-y-2 lg:col-span-2' : 'space-y-2'}>
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          rows={6}
-          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-          placeholder={placeholder}
-        />
-      ) : (
-        <input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-          placeholder={placeholder}
-        />
-      )}
-    </label>
-  )
+function updateContentJson(
+  contentJson: RedeemItemInput['contentJson'],
+  updater: (fields: RedeemContentFields) => RedeemContentFields,
+) {
+  return createRedeemContent(updater(readRedeemContentFields(contentJson)))
 }
 
 export function RedeemManager({
@@ -98,7 +69,7 @@ export function RedeemManager({
     count: 10,
   })
   const [bulkTemplateMode, setBulkTemplateMode] = useState<TemplateMode>('blank')
-  const [bulkTemplateFields, setBulkTemplateFields] = useState<RedeemContentFields>(EMPTY_REDEEM_CONTENT_FIELDS)
+  const [bulkTemplateFields, setBulkTemplateFields] = useState<RedeemContentFields>(() => createDefaultRedeemContentFields())
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
@@ -159,20 +130,10 @@ export function RedeemManager({
     }
   }, [sortedItems])
 
-  const updateDraftFields = (partial: Partial<RedeemContentFields>) => {
+  const updateDraftFields = (updater: (fields: RedeemContentFields) => RedeemContentFields) => {
     setDraft((current) => ({
       ...current,
-      contentJson: createRedeemContent({
-        ...readRedeemContentFields(current.contentJson),
-        ...partial,
-      }),
-    }))
-  }
-
-  const updateBulkTemplateFields = (partial: Partial<RedeemContentFields>) => {
-    setBulkTemplateFields((current) => ({
-      ...current,
-      ...partial,
+      contentJson: updateContentJson(current.contentJson, updater),
     }))
   }
 
@@ -292,7 +253,9 @@ export function RedeemManager({
         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="mb-4">
             <p className="text-sm font-medium text-slate-900">按商品批量生成兑换码</p>
-            <p className="mt-1 text-xs leading-6 text-slate-500">可选择空白模板或自定义模板批量生成，后续再逐个微调账号、密码、2FA 和补充说明。</p>
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              支持把账号、密码、2FA 做成独立字段，也可以自由新增、重命名或删除这些展示框。
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -348,32 +311,28 @@ export function RedeemManager({
             </label>
 
             {bulkTemplateMode === 'custom' ? (
-              <div className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 lg:grid-cols-2">
-                <FieldInput
-                  label="模板账号"
-                  value={bulkTemplateFields.account}
-                  onChange={(value) => updateBulkTemplateFields({ account: value })}
-                  placeholder="可留空，后续逐个补充"
+              <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4">
+                <RedeemFieldListEditor
+                  fields={bulkTemplateFields.deliveryFields}
+                  onChange={(deliveryFields) => setBulkTemplateFields((current) => ({ ...current, deliveryFields }))}
                 />
-                <FieldInput
-                  label="模板密码"
-                  value={bulkTemplateFields.password}
-                  onChange={(value) => updateBulkTemplateFields({ password: value })}
-                  placeholder="可留空，后续逐个补充"
-                />
-                <FieldInput
-                  label="模板 2FA"
-                  value={bulkTemplateFields.twoFactorCode}
-                  onChange={(value) => updateBulkTemplateFields({ twoFactorCode: value })}
-                  placeholder="例如：2FA 密钥或动态码说明"
-                />
-                <FieldInput
-                  label="模板其他内容"
-                  value={bulkTemplateFields.otherContent}
-                  onChange={(value) => updateBulkTemplateFields({ otherContent: value })}
-                  placeholder="填写统一的登录步骤、注意事项或补充说明"
-                  multiline
-                />
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">模板其他内容</span>
+                  <textarea
+                    aria-label="模板其他内容"
+                    value={bulkTemplateFields.otherContent}
+                    onChange={(event) =>
+                      setBulkTemplateFields((current) => ({
+                        ...current,
+                        otherContent: event.target.value,
+                      }))
+                    }
+                    rows={5}
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+                    placeholder="填写统一的登录步骤、注意事项或补充说明"
+                  />
+                </label>
               </div>
             ) : null}
 
@@ -514,41 +473,40 @@ export function RedeemManager({
               <div>
                 <p className="text-sm font-medium text-slate-900">兑换后展示内容</p>
                 <p className="mt-1 text-xs leading-6 text-slate-500">
-                  直接填写账号、密码、2FA 和其他说明即可；保存后，买家下次兑换或查看历史记录时会看到最新内容。
+                  这些字段会在前台独立成卡片展示，并支持一键复制；你可以自由新增、删除或改名。
                 </p>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <FieldInput
-                  label="账号"
-                  value={draftFields.account}
-                  onChange={(value) => updateDraftFields({ account: value })}
-                  placeholder="例如：example@gmail.com"
-                />
-                <FieldInput
-                  label="密码"
-                  value={draftFields.password}
-                  onChange={(value) => updateDraftFields({ password: value })}
-                  placeholder="填写对应密码"
-                />
-                <FieldInput
-                  label="2FA"
-                  value={draftFields.twoFactorCode}
-                  onChange={(value) => updateDraftFields({ twoFactorCode: value })}
-                  placeholder="填写 2FA 密钥、验证码说明或恢复码"
-                />
-                <FieldInput
-                  label="其他内容"
+              <RedeemFieldListEditor
+                fields={draftFields.deliveryFields}
+                onChange={(deliveryFields) =>
+                  updateDraftFields((current) => ({
+                    ...current,
+                    deliveryFields,
+                  }))
+                }
+              />
+
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">其他内容</span>
+                <textarea
+                  aria-label="其他内容"
                   value={draftFields.otherContent}
-                  onChange={(value) => updateDraftFields({ otherContent: value })}
+                  onChange={(event) =>
+                    updateDraftFields((current) => ({
+                      ...current,
+                      otherContent: event.target.value,
+                    }))
+                  }
+                  rows={5}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
                   placeholder="填写登录步骤、注意事项或补充说明"
-                  multiline
                 />
-              </div>
+              </label>
 
               <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-medium text-slate-900">买家看到的内容预览</p>
-                <RichTextViewer content={getRedeemContentDocument(draft.contentJson)} />
+                <RedeemDeliveryContent content={draft.contentJson} enableCopy={false} />
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
