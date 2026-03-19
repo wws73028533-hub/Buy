@@ -5,6 +5,7 @@ type SeedProduct = {
   title: string
   coverImageUrl: string | null
   purchaseLinkUrl: string | null
+  purchaseLinks: Array<{ label: string; url: string }>
   purchaseCode: string | null
   contentJson: Record<string, unknown>
   sortOrder: number
@@ -153,6 +154,7 @@ const demoProducts: SeedProduct[] = [
     title: 'AI 协作尊享权益',
     coverImageUrl: '/demo-ai-membership.svg',
     purchaseLinkUrl: null,
+    purchaseLinks: [],
     purchaseCode: '复制口令后打开对应平台搜索：AI 协作尊享权益',
     contentJson: createProductContent({
       intro: '适合想快速开启高频协作、同时重视上手体验与售后支持的用户。',
@@ -167,6 +169,10 @@ const demoProducts: SeedProduct[] = [
     title: '轻享效率入门包',
     coverImageUrl: '/demo-efficiency-kit.svg',
     purchaseLinkUrl: 'https://example.com/buy/starter-efficiency-kit',
+    purchaseLinks: [
+      { label: '主入口', url: 'https://example.com/buy/starter-efficiency-kit' },
+      { label: '备用入口', url: 'https://backup.example.com/buy/starter-efficiency-kit' },
+    ],
     purchaseCode: '复制口令后打开对应平台搜索：轻享效率入门包',
     contentJson: createProductContent({
       intro: '适合第一次了解这类商品的用户，先小成本体验，再决定是否继续深入。',
@@ -235,13 +241,14 @@ async function readTableCount(client: PoolClient, tableName: 'products' | 'tutor
 async function insertProducts(client: PoolClient, items: SeedProduct[]) {
   for (const item of items) {
     await client.query(
-      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_code, content_json, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_links, purchase_code, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         item.slug,
         item.title,
         item.coverImageUrl,
         item.purchaseLinkUrl,
+        item.purchaseLinks,
         item.purchaseCode,
         item.contentJson,
         item.sortOrder,

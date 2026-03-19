@@ -16,6 +16,7 @@ type Product = {
   title: string
   coverImageUrl: string | null
   purchaseLinkUrl: string | null
+  purchaseLinks: Array<{ label: string; url: string }>
   purchaseCode: string | null
   contentJson: Record<string, unknown>
   sortOrder: number
@@ -90,6 +91,7 @@ const productColumns = `
   title,
   cover_image_url as "coverImageUrl",
   purchase_link_url as "purchaseLinkUrl",
+  purchase_links as "purchaseLinks",
   purchase_code as "purchaseCode",
   content_json as "contentJson",
   sort_order as "sortOrder",
@@ -189,6 +191,49 @@ function readOptionalHttpUrl(value: unknown, field: string) {
   }
 }
 
+function createDefaultPurchaseLinkLabel(index: number) {
+  return index === 0 ? '默认入口' : `入口 ${index + 1}`
+}
+
+function normalizePurchaseLinks(value: unknown) {
+  if (value === undefined || value === null) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw badRequest('购买入口列表格式不正确')
+  }
+
+  if (value.length > 8) {
+    throw badRequest('购买入口最多支持 8 个')
+  }
+
+  return value.reduce<Array<{ label: string; url: string }>>((result, item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw badRequest(`第 ${index + 1} 个购买入口格式不正确`)
+    }
+
+    const entry = item as Record<string, unknown>
+    const label = readOptionalString(entry.label)
+    const url = readOptionalHttpUrl(entry.url, `第 ${index + 1} 个购买入口链接`)
+
+    if (!url) {
+      if (label) {
+        throw badRequest(`第 ${index + 1} 个购买入口缺少链接地址`)
+      }
+
+      return result
+    }
+
+    result.push({
+      label: label ?? createDefaultPurchaseLinkLabel(result.length),
+      url,
+    })
+
+    return result
+  }, [])
+}
+
 function readBoolean(value: unknown, field: string) {
   if (typeof value !== 'boolean') {
     throw badRequest(`${field}必须是布尔值`)
@@ -241,12 +286,21 @@ function readRedeemCodeInput(body: unknown) {
 
 function normalizeProductInput(body: unknown) {
   const input = body as Record<string, unknown>
+  const legacyPurchaseLinkUrl = readOptionalHttpUrl(input.purchaseLinkUrl, '外部购买链接')
+  const purchaseLinks = normalizePurchaseLinks(input.purchaseLinks)
+  const normalizedPurchaseLinks =
+    purchaseLinks.length > 0
+      ? purchaseLinks
+      : legacyPurchaseLinkUrl
+        ? [{ label: createDefaultPurchaseLinkLabel(0), url: legacyPurchaseLinkUrl }]
+        : []
 
   return {
     slug: readString(input.slug, 'slug'),
     title: readString(input.title, '商品标题'),
     coverImageUrl: readOptionalString(input.coverImageUrl),
-    purchaseLinkUrl: readOptionalHttpUrl(input.purchaseLinkUrl, '外部购买链接'),
+    purchaseLinkUrl: normalizedPurchaseLinks[0]?.url ?? null,
+    purchaseLinks: normalizedPurchaseLinks,
     purchaseCode: readOptionalString(input.purchaseCode),
     contentJson: readObject(input.contentJson, '商品详情'),
     sortOrder: readNumber(input.sortOrder, '排序值'),
@@ -724,14 +778,15 @@ app.post('/api/admin/products', requireAdmin, async (request, response, next) =>
   try {
     const input = normalizeProductInput(request.body)
     const result = await pool.query<Product>(
-      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_code, content_json, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+      `insert into products (slug, title, cover_image_url, purchase_link_url, purchase_links, purchase_code, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        returning ${productColumns}`,
       [
         input.slug,
         input.title,
         input.coverImageUrl,
         input.purchaseLinkUrl,
+        input.purchaseLinks,
         input.purchaseCode,
         input.contentJson,
         input.sortOrder,
@@ -754,10 +809,11 @@ app.put('/api/admin/products/:id', requireAdmin, async (request, response, next)
            title = $3,
            cover_image_url = $4,
            purchase_link_url = $5,
-           purchase_code = $6,
-           content_json = $7,
-           sort_order = $8,
-           is_published = $9
+           purchase_links = $6,
+           purchase_code = $7,
+           content_json = $8,
+           sort_order = $9,
+           is_published = $10
        where id = $1
        returning ${productColumns}`,
       [
@@ -766,6 +822,7 @@ app.put('/api/admin/products/:id', requireAdmin, async (request, response, next)
         input.title,
         input.coverImageUrl,
         input.purchaseLinkUrl,
+        input.purchaseLinks,
         input.purchaseCode,
         input.contentJson,
         input.sortOrder,

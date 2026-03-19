@@ -14,6 +14,7 @@ create table if not exists public.products (
   title text not null,
   cover_image_url text,
   purchase_link_url text,
+  purchase_links jsonb not null default '[]'::jsonb,
   purchase_code text,
   content_json jsonb not null default '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb,
   sort_order integer not null default 0,
@@ -23,7 +24,13 @@ create table if not exists public.products (
 );
 
 alter table public.products add column if not exists purchase_link_url text;
+alter table public.products add column if not exists purchase_links jsonb not null default '[]'::jsonb;
 alter table public.products add column if not exists purchase_code text;
+
+update public.products
+set purchase_links = jsonb_build_array(jsonb_build_object('label', '默认入口', 'url', purchase_link_url))
+where purchase_link_url is not null
+  and purchase_links = '[]'::jsonb;
 
 create table if not exists public.tutorial_items (
   id uuid primary key default gen_random_uuid(),

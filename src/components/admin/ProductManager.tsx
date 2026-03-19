@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 
 import { deleteProduct, saveProduct, uploadPublicFile } from '../../services/adminApi'
+import { createEmptyPurchaseLink, getProductPurchaseLinks, sanitizePurchaseLinks } from '../../lib/purchaseLinks'
 import type { Product, ProductInput } from '../../types/content'
 import { fileToDataUrl, formatDate, slugify } from '../../lib/utils'
 import { RichTextEditor } from '../rich-text/RichTextEditor'
@@ -85,6 +86,7 @@ function createEmptyProduct(): ProductInput {
     slug: '',
     coverImageUrl: null,
     purchaseLinkUrl: '',
+    purchaseLinks: [],
     purchaseCode: '',
     contentJson: createDefaultProductContent(),
     sortOrder: 0,
@@ -128,6 +130,7 @@ export function ProductManager({
         slug: selectedItem.slug,
         coverImageUrl: selectedItem.coverImageUrl,
         purchaseLinkUrl: selectedItem.purchaseLinkUrl,
+        purchaseLinks: getProductPurchaseLinks(selectedItem),
         purchaseCode: selectedItem.purchaseCode,
         contentJson: selectedItem.contentJson,
         sortOrder: selectedItem.sortOrder,
@@ -171,6 +174,16 @@ export function ProductManager({
       return
     }
 
+    let purchaseLinks = draft.purchaseLinks
+
+    try {
+      purchaseLinks = sanitizePurchaseLinks(draft.purchaseLinks)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '购买入口格式不正确'
+      window.alert(message)
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -182,7 +195,8 @@ export function ProductManager({
         ...draft,
         slug,
         coverImageUrl,
-        purchaseLinkUrl: draft.purchaseLinkUrl?.trim() || null,
+        purchaseLinkUrl: purchaseLinks[0]?.url ?? null,
+        purchaseLinks,
         purchaseCode: draft.purchaseCode?.trim() || null,
       })
 
@@ -203,6 +217,34 @@ export function ProductManager({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleAddPurchaseLink = () => {
+    setDraft((current) => ({
+      ...current,
+      purchaseLinks: [...current.purchaseLinks, createEmptyPurchaseLink()],
+    }))
+  }
+
+  const handlePurchaseLinkChange = (index: number, key: 'label' | 'url', value: string) => {
+    setDraft((current) => ({
+      ...current,
+      purchaseLinks: current.purchaseLinks.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              [key]: value,
+            }
+          : item,
+      ),
+    }))
+  }
+
+  const handleRemovePurchaseLink = (index: number) => {
+    setDraft((current) => ({
+      ...current,
+      purchaseLinks: current.purchaseLinks.filter((_, itemIndex) => itemIndex !== index),
+    }))
   }
 
   const handleDelete = async () => {
@@ -344,18 +386,63 @@ export function ProductManager({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">外部购买链接（可选）</span>
-            <input
-              value={draft.purchaseLinkUrl ?? ''}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, purchaseLinkUrl: event.target.value }))
-              }
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-              placeholder="例如：https://your-platform.com/item/123"
-            />
-            <p className="text-xs leading-6 text-slate-400">填写后，详情页会显示“链接直达”按钮，直接跳转到外部平台购买。</p>
-          </label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <span className="text-sm font-medium text-slate-700">购买入口（可选）</span>
+                <p className="mt-1 text-xs leading-6 text-slate-400">可同时配置多个平台或备用链接，详情页会全部展示。</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPurchaseLink}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 hover:text-slate-900"
+              >
+                新增入口
+              </button>
+            </div>
+            {draft.purchaseLinks.length > 0 ? (
+              <div className="space-y-3">
+                {draft.purchaseLinks.map((item, index) => (
+                  <div key={`purchase-link-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+                      <label className="space-y-2">
+                        <span className="text-sm font-medium text-slate-700">入口名称</span>
+                        <input
+                          value={item.label}
+                          onChange={(event) => handlePurchaseLinkChange(index, 'label', event.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+                          placeholder={index === 0 ? '例如：淘宝入口' : '例如：备用入口'}
+                        />
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-sm font-medium text-slate-700">链接地址</span>
+                        <input
+                          value={item.url}
+                          onChange={(event) => handlePurchaseLinkChange(index, 'url', event.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+                          placeholder="例如：https://your-platform.com/item/123"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePurchaseLink(index)}
+                        className="text-sm font-medium text-slate-500 hover:text-slate-800"
+                      >
+                        删除该入口
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500">
+                暂未添加购买入口。建议至少准备 2 个入口，避免单个链接失效后用户无法继续购买。
+              </div>
+            )}
+            <p className="text-xs leading-6 text-slate-400">未填写入口名称时，系统会自动补成“默认入口 / 入口 2 / 入口 3”。</p>
+          </div>
 
           <label className="space-y-2">
             <span className="text-sm font-medium text-slate-700">购买口令（可选）</span>

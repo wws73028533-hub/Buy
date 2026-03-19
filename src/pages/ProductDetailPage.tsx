@@ -5,16 +5,50 @@ import { EmptyState } from '../components/EmptyState'
 import { LoadingView } from '../components/LoadingView'
 import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
+import { getProductPurchaseLinks } from '../lib/purchaseLinks'
 import { getRichTextTextBlocks } from '../lib/richText'
 import { copyText, formatDate } from '../lib/utils'
 import { getPublishedProductBySlug } from '../services/publicApi'
-import type { Product } from '../types/content'
+import type { Product, PurchaseLink } from '../types/content'
 
 const fallbackHighlights = [
   '先看商品介绍，确认它是否适合你的需求和使用场景。',
   '想进一步了解使用方式，可以继续查看使用指南。',
   '下单前后有问题，都可以通过咨询售后页面联系商家。',
 ]
+
+function createPurchaseLinkClassName(index: number, variant: 'hero' | 'aside') {
+  if (variant === 'hero') {
+    return index === 0
+      ? 'rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800'
+      : 'rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900'
+  }
+
+  return index === 0
+    ? 'block rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800'
+    : 'block rounded-2xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900'
+}
+
+function PurchaseLinkButton({
+  purchaseLink,
+  index,
+  variant,
+}: {
+  purchaseLink: PurchaseLink
+  index: number
+  variant: 'hero' | 'aside'
+}) {
+  return (
+    <a
+      href={purchaseLink.url}
+      target="_blank"
+      rel="noreferrer"
+      className={createPurchaseLinkClassName(index, variant)}
+    >
+      直达：{purchaseLink.label}
+    </a>
+  )
+}
 
 export function ProductDetailPage() {
   const { slug = '' } = useParams()
@@ -64,6 +98,7 @@ export function ProductDetailPage() {
     () => (product ? getRichTextTextBlocks(product.contentJson).filter(Boolean) : []),
     [product],
   )
+  const purchaseLinks = useMemo(() => (product ? getProductPurchaseLinks(product) : []), [product])
   const summary = textBlocks[0] ?? '这里集中展示商品亮点、使用说明和购买前需要知道的信息。'
   const highlights = textBlocks.slice(1, 4)
   const concernItems = highlights.length > 0 ? highlights : fallbackHighlights
@@ -145,16 +180,14 @@ export function ProductDetailPage() {
           ) : null}
 
           <div className="mt-6 grid gap-3">
-            {product.purchaseLinkUrl ? (
-              <a
-                href={product.purchaseLinkUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                链接直达购买
-              </a>
-            ) : null}
+            {purchaseLinks.map((purchaseLink, index) => (
+              <PurchaseLinkButton
+                key={`${purchaseLink.label}-${purchaseLink.url}`}
+                purchaseLink={purchaseLink}
+                index={index}
+                variant="hero"
+              />
+            ))}
             {product.purchaseCode ? (
               <button
                 type="button"
@@ -164,7 +197,10 @@ export function ProductDetailPage() {
                 复制购买口令
               </button>
             ) : null}
-            {!product.purchaseLinkUrl && !product.purchaseCode ? (
+            {purchaseLinks.length > 1 ? (
+              <p className="text-xs leading-6 text-slate-500">如果当前入口失效，可以继续尝试其它购买入口。</p>
+            ) : null}
+            {purchaseLinks.length === 0 && !product.purchaseCode ? (
               <Link
                 to="/support"
                 className="rounded-2xl bg-slate-900 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -198,18 +234,16 @@ export function ProductDetailPage() {
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <h2 className="text-lg font-semibold text-slate-900">购买方式</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">本站不支持直接支付，可通过商家提供的外部链接或购买口令完成下单。</p>
-            {product.purchaseLinkUrl || product.purchaseCode ? (
+            {purchaseLinks.length > 0 || product.purchaseCode ? (
               <div className="mt-4 space-y-4">
-                {product.purchaseLinkUrl ? (
-                  <a
-                    href={product.purchaseLinkUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
-                  >
-                    链接直达购买
-                  </a>
-                ) : null}
+                {purchaseLinks.map((purchaseLink, index) => (
+                  <PurchaseLinkButton
+                    key={`aside-${purchaseLink.label}-${purchaseLink.url}`}
+                    purchaseLink={purchaseLink}
+                    index={index}
+                    variant="aside"
+                  />
+                ))}
                 {product.purchaseCode ? (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center justify-between gap-3">

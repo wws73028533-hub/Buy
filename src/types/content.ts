@@ -1,11 +1,17 @@
 export type RichTextJson = Record<string, unknown>
 
+export interface PurchaseLink {
+  label: string
+  url: string
+}
+
 export interface Product {
   id: string
   slug: string
   title: string
   coverImageUrl: string | null
   purchaseLinkUrl: string | null
+  purchaseLinks: PurchaseLink[]
   purchaseCode: string | null
   contentJson: RichTextJson
   sortOrder: number
@@ -65,6 +71,7 @@ export interface ProductInput {
   title: string
   coverImageUrl: string | null
   purchaseLinkUrl: string | null
+  purchaseLinks: PurchaseLink[]
   purchaseCode: string | null
   contentJson: RichTextJson
   sortOrder: number
