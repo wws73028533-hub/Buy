@@ -8,7 +8,7 @@ import { usePageMeta } from '../../hooks/usePageMeta'
 export function AdminTutorialsPage() {
   usePageMeta({
     title: '使用指南管理',
-    description: '维护在线指南、资料下载与教程入口。',
+    description: '维护站内图文教程、在线指南与资料下载入口。',
   })
 
   const { loading, error, refresh, setTutorials, tutorials } = useAdminData()
@@ -16,7 +16,7 @@ export function AdminTutorialsPage() {
   return (
     <AdminSectionPage
       title="使用指南"
-      description="统一管理在线教程和资料下载入口，确保前台用户能快速找到上手方式与资料包。"
+      description="统一管理站内图文教程、在线指南和资料下载入口，确保前台用户能快速找到上手方式与资料包。"
       action={
         <Link
           to="/tutorials"

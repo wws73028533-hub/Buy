@@ -4,8 +4,18 @@ import { EmptyState } from '../components/EmptyState'
 import { LoadingView } from '../components/LoadingView'
 import { PublicPageHeader } from '../components/PublicPageHeader'
 import { SectionCard } from '../components/SectionCard'
+import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
 import { useSiteContent } from '../hooks/useSiteContent'
+import { EMPTY_RICH_TEXT } from '../lib/richText'
+
+function getTutorialBadge(type: 'link' | 'file' | 'article') {
+  if (type === 'article') {
+    return { icon: '文', label: '站内图文' }
+  }
+
+  return type === 'link' ? { icon: '↗', label: '在线查看' } : { icon: '⇩', label: '资料下载' }
+}
 
 export function TutorialsPage() {
   usePageMeta({
@@ -48,11 +58,43 @@ export function TutorialsPage() {
       {error ? <EmptyState title="使用指南加载失败" description={error} /> : null}
 
       {!loading && !error ? (
-        <SectionCard title="全部指南与资料" description="点击即可打开图文说明、视频链接或下载文件。">
+        <SectionCard title="全部指南与资料" description="站内图文可直接阅读，外部链接和文件资料也会继续保留。">
           {tutorials.length > 0 ? (
             <div className="space-y-4">
               {tutorials.map((tutorial, index) => {
-                const href = tutorial.type === 'link' ? tutorial.url : tutorial.fileUrl
+                const badge = getTutorialBadge(tutorial.type)
+                const href = tutorial.type === 'link' ? tutorial.url : tutorial.type === 'file' ? tutorial.fileUrl : null
+
+                if (tutorial.type === 'article') {
+                  return (
+                    <article
+                      key={tutorial.id}
+                      id={`tutorial-${tutorial.id}`}
+                      className="rounded-[1.5rem] border border-slate-200 bg-white p-5"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                          {badge.icon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-semibold tracking-tight text-slate-900">{tutorial.title}</h3>
+                            <span className="rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-600">
+                              {badge.label}
+                            </span>
+                            <span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
+                              第 {index + 1} 项
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-7 text-slate-500">教程内容已写入系统，可直接在当前页面阅读。</p>
+                        </div>
+                      </div>
+                      <div className="mt-5 rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-6">
+                        <RichTextViewer content={tutorial.contentJson ?? EMPTY_RICH_TEXT} />
+                      </div>
+                    </article>
+                  )
+                }
 
                 return (
                   <a
@@ -64,13 +106,13 @@ export function TutorialsPage() {
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-                        {tutorial.type === 'link' ? '↗' : '⇩'}
+                        {badge.icon}
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-lg font-semibold tracking-tight text-slate-900">{tutorial.title}</h3>
                           <span className="rounded-full bg-slate-200 px-2 py-1 text-xs font-medium text-slate-600">
-                            {tutorial.type === 'link' ? '在线查看' : '资料下载'}
+                            {badge.label}
                           </span>
                           <span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
                             第 {index + 1} 项

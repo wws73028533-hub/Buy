@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RedeemManager } from '../components/admin/RedeemManager'
+import { createRedeemContent } from '../lib/redeemContent'
 import type { Product, RedeemItem } from '../types/content'
 
 const createRedeemItemsMock = vi.fn()
@@ -13,10 +14,6 @@ vi.mock('../services/adminApi', () => ({
   createRedeemItems: (...args: unknown[]) => createRedeemItemsMock(...args),
   saveRedeemItem: (...args: unknown[]) => saveRedeemItemMock(...args),
   deleteRedeemItem: (...args: unknown[]) => deleteRedeemItemMock(...args),
-}))
-
-vi.mock('../components/rich-text/RichTextEditor', () => ({
-  RichTextEditor: ({ value }: { value: unknown }) => <div data-testid="rich-text-editor">{JSON.stringify(value)}</div>,
 }))
 
 vi.mock('../components/rich-text/RichTextViewer', () => ({
@@ -71,14 +68,14 @@ afterEach(() => {
 })
 
 describe('RedeemManager', () => {
-  it('支持按商品批量生成兑换码并展示扁平列表', async () => {
+  it('支持按自定义模板批量生成兑换码', async () => {
     createRedeemItemsMock.mockResolvedValue([
       {
         id: 'r1',
         productId: 'p1',
         productTitle: '商品 1',
         code: 'AAAA-BBBB-CCCC',
-        contentJson: {},
+        contentJson: createRedeemContent({ otherContent: '统一步骤' }),
         redeemedAt: null,
         createdAt: '2026-03-18T01:00:00.000Z',
         updatedAt: '2026-03-18T01:00:00.000Z',
@@ -87,25 +84,38 @@ describe('RedeemManager', () => {
 
     render(<Harness />)
 
+    fireEvent.change(screen.getByLabelText('生成模板'), { target: { value: 'custom' } })
+    fireEvent.change(screen.getByLabelText('模板账号'), { target: { value: 'shared-account@example.com' } })
+    fireEvent.change(screen.getByLabelText('模板密码'), { target: { value: 'Pass-123456' } })
+    fireEvent.change(screen.getByLabelText('模板 2FA'), { target: { value: '2FA-KEY' } })
+    fireEvent.change(screen.getByLabelText('模板其他内容'), { target: { value: '统一步骤' } })
     fireEvent.click(screen.getByRole('button', { name: '批量生成兑换码' }))
 
     await waitFor(() => {
-      expect(createRedeemItemsMock).toHaveBeenCalledWith({ productId: 'p1', count: 10 })
+      expect(createRedeemItemsMock).toHaveBeenCalledWith({
+        productId: 'p1',
+        count: 10,
+        contentJson: createRedeemContent({
+          account: 'shared-account@example.com',
+          password: 'Pass-123456',
+          twoFactorCode: '2FA-KEY',
+          otherContent: '统一步骤',
+        }),
+      })
     })
 
     expect((await screen.findAllByText('AAAA-BBBB-CCCC')).length).toBeGreaterThan(0)
-    expect(screen.getByText('商品：商品 1')).toBeInTheDocument()
   })
 
-  it('未兑换码保存时会调用单条保存接口', async () => {
+  it('已兑换码也可以继续保存修改', async () => {
     const initialItems: RedeemItem[] = [
       {
         id: 'r1',
         productId: 'p1',
         productTitle: '商品 1',
         code: 'AAAA-BBBB-CCCC',
-        contentJson: { type: 'doc', content: [] },
-        redeemedAt: null,
+        contentJson: createRedeemContent({ account: 'old@example.com' }),
+        redeemedAt: '2026-03-18T03:00:00.000Z',
         createdAt: '2026-03-18T01:00:00.000Z',
         updatedAt: '2026-03-18T01:00:00.000Z',
       },
@@ -115,23 +125,55 @@ describe('RedeemManager', () => {
       ...initialItems[0],
       productId: 'p2',
       productTitle: '商品 2',
+      contentJson: createRedeemContent({ account: 'new@example.com', otherContent: '已更新' }),
       updatedAt: '2026-03-18T02:00:00.000Z',
     })
 
     render(<Harness initialItems={initialItems} />)
 
     const selects = screen.getAllByRole('combobox')
-    fireEvent.change(selects[1], { target: { value: 'p2' } })
+    fireEvent.change(selects.at(-1) as HTMLSelectElement, { target: { value: 'p2' } })
+    fireEvent.change(screen.getByLabelText('账号'), { target: { value: 'new@example.com' } })
+    fireEvent.change(screen.getByLabelText('其他内容'), { target: { value: '已更新' } })
     fireEvent.click(screen.getByRole('button', { name: '保存兑换内容' }))
 
     await waitFor(() => {
       expect(saveRedeemItemMock).toHaveBeenCalledWith({
         id: 'r1',
         productId: 'p2',
-        contentJson: { type: 'doc', content: [] },
+        contentJson: createRedeemContent({
+          account: 'new@example.com',
+          otherContent: '已更新',
+        }),
       })
     })
 
     expect(await screen.findByText('商品：商品 2')).toBeInTheDocument()
+  })
+
+  it('已兑换码也可以删除', async () => {
+    const initialItems: RedeemItem[] = [
+      {
+        id: 'r1',
+        productId: 'p1',
+        productTitle: '商品 1',
+        code: 'AAAA-BBBB-CCCC',
+        contentJson: createRedeemContent({ account: 'old@example.com' }),
+        redeemedAt: '2026-03-18T03:00:00.000Z',
+        createdAt: '2026-03-18T01:00:00.000Z',
+        updatedAt: '2026-03-18T01:00:00.000Z',
+      },
+    ]
+
+    deleteRedeemItemMock.mockResolvedValue(undefined)
+
+    render(<Harness initialItems={initialItems} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '删除兑换码' }))
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith('确认删除这个已兑换的兑换码吗？删除后买家将无法再查看历史记录。')
+      expect(deleteRedeemItemMock).toHaveBeenCalledWith('r1')
+    })
   })
 })

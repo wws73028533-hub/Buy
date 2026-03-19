@@ -1,55 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
+import {
+  createRedeemContent,
+  EMPTY_REDEEM_CONTENT_FIELDS,
+  getRedeemContentDocument,
+  readRedeemContentFields,
+} from '../../lib/redeemContent'
+import type { RedeemContentFields } from '../../lib/redeemContent'
 import { copyText, formatDateTime } from '../../lib/utils'
 import { createRedeemItems, deleteRedeemItem, saveRedeemItem } from '../../services/adminApi'
 import type { Product, RedeemItem, RedeemItemBulkInput, RedeemItemInput } from '../../types/content'
-import { RichTextEditor } from '../rich-text/RichTextEditor'
 import { RichTextViewer } from '../rich-text/RichTextViewer'
 
 function createDefaultRedeemContent(): RedeemItemInput['contentJson'] {
-  return {
-    type: 'doc',
-    content: [
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '请填写这个兑换码专属的账号、密码、登录方式、步骤和注意事项。每个兑换码都应该维护自己的独立内容。',
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: { level: 2 },
-        content: [{ type: 'text', text: '建议包含' }],
-      },
-      {
-        type: 'bulletList',
-        content: [
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [{ type: 'text', text: '账号 / 密码 / 链接 / 登录方式' }],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [{ type: 'text', text: '使用步骤 / 到期时间 / 备注 / 风险提示' }],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  }
+  return createRedeemContent()
 }
 
 function createEmptyDraft(productId: string | null): RedeemItemInput {
@@ -79,6 +44,44 @@ function sortRedeemItems(items: RedeemItem[]) {
   })
 }
 
+type TemplateMode = 'blank' | 'custom'
+
+function FieldInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  multiline = false,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  multiline?: boolean
+}) {
+  return (
+    <label className={multiline ? 'block space-y-2 lg:col-span-2' : 'space-y-2'}>
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={6}
+          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+          placeholder={placeholder}
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+          placeholder={placeholder}
+        />
+      )}
+    </label>
+  )
+}
+
 export function RedeemManager({
   items,
   products,
@@ -90,10 +93,12 @@ export function RedeemManager({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<RedeemItemInput>(() => createEmptyDraft(products[0]?.id ?? null))
-  const [bulkInput, setBulkInput] = useState<RedeemItemBulkInput>({
+  const [bulkInput, setBulkInput] = useState<Omit<RedeemItemBulkInput, 'contentJson'>>({
     productId: products[0]?.id ?? '',
     count: 10,
   })
+  const [bulkTemplateMode, setBulkTemplateMode] = useState<TemplateMode>('blank')
+  const [bulkTemplateFields, setBulkTemplateFields] = useState<RedeemContentFields>(EMPTY_REDEEM_CONTENT_FIELDS)
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
@@ -103,6 +108,7 @@ export function RedeemManager({
     () => sortedItems.find((item) => item.id === selectedId) ?? null,
     [selectedId, sortedItems],
   )
+  const draftFields = useMemo(() => readRedeemContentFields(draft.contentJson), [draft.contentJson])
 
   useEffect(() => {
     if (selectedId && sortedItems.some((item) => item.id === selectedId)) {
@@ -153,6 +159,23 @@ export function RedeemManager({
     }
   }, [sortedItems])
 
+  const updateDraftFields = (partial: Partial<RedeemContentFields>) => {
+    setDraft((current) => ({
+      ...current,
+      contentJson: createRedeemContent({
+        ...readRedeemContentFields(current.contentJson),
+        ...partial,
+      }),
+    }))
+  }
+
+  const updateBulkTemplateFields = (partial: Partial<RedeemContentFields>) => {
+    setBulkTemplateFields((current) => ({
+      ...current,
+      ...partial,
+    }))
+  }
+
   const handleCreate = async () => {
     if (products.length === 0) {
       window.alert('请先创建至少 1 个商品，再生成兑换码')
@@ -177,6 +200,7 @@ export function RedeemManager({
       const createdItems = await createRedeemItems({
         productId: bulkInput.productId,
         count,
+        contentJson: bulkTemplateMode === 'custom' ? createRedeemContent(bulkTemplateFields) : createDefaultRedeemContent(),
       })
       const nextItems = sortRedeemItems([...createdItems, ...items])
 
@@ -196,11 +220,6 @@ export function RedeemManager({
 
     if (!selectedItem?.id || !draft.id) {
       window.alert('请先在左侧选择一个兑换码')
-      return
-    }
-
-    if (selectedItem.redeemedAt) {
-      window.alert('已使用的兑换码不能再修改')
       return
     }
 
@@ -234,12 +253,11 @@ export function RedeemManager({
       return
     }
 
-    if (selectedItem.redeemedAt) {
-      window.alert('已使用的兑换码不能删除')
-      return
-    }
+    const confirmMessage = selectedItem.redeemedAt
+      ? '确认删除这个已兑换的兑换码吗？删除后买家将无法再查看历史记录。'
+      : '确认删除这个兑换码吗？'
 
-    if (!window.confirm('确认删除这个未兑换的兑换码吗？')) {
+    if (!window.confirm(confirmMessage)) {
       return
     }
 
@@ -273,8 +291,8 @@ export function RedeemManager({
       <div className="space-y-6">
         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="mb-4">
-            <p className="text-sm font-medium text-slate-900">按商品批量生成空白码</p>
-            <p className="mt-1 text-xs leading-6 text-slate-500">先选择商品并生成独立兑换码，生成后再逐条补充对应账号内容。</p>
+            <p className="text-sm font-medium text-slate-900">按商品批量生成兑换码</p>
+            <p className="mt-1 text-xs leading-6 text-slate-500">可选择空白模板或自定义模板批量生成，后续再逐个微调账号、密码、2FA 和补充说明。</p>
           </div>
 
           <div className="space-y-4">
@@ -317,6 +335,48 @@ export function RedeemManager({
               />
             </label>
 
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-slate-700">生成模板</span>
+              <select
+                value={bulkTemplateMode}
+                onChange={(event) => setBulkTemplateMode(event.target.value as TemplateMode)}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+              >
+                <option value="blank">空白模板（后续逐个填写）</option>
+                <option value="custom">自定义模板（批量写入下方内容）</option>
+              </select>
+            </label>
+
+            {bulkTemplateMode === 'custom' ? (
+              <div className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 lg:grid-cols-2">
+                <FieldInput
+                  label="模板账号"
+                  value={bulkTemplateFields.account}
+                  onChange={(value) => updateBulkTemplateFields({ account: value })}
+                  placeholder="可留空，后续逐个补充"
+                />
+                <FieldInput
+                  label="模板密码"
+                  value={bulkTemplateFields.password}
+                  onChange={(value) => updateBulkTemplateFields({ password: value })}
+                  placeholder="可留空，后续逐个补充"
+                />
+                <FieldInput
+                  label="模板 2FA"
+                  value={bulkTemplateFields.twoFactorCode}
+                  onChange={(value) => updateBulkTemplateFields({ twoFactorCode: value })}
+                  placeholder="例如：2FA 密钥或动态码说明"
+                />
+                <FieldInput
+                  label="模板其他内容"
+                  value={bulkTemplateFields.otherContent}
+                  onChange={(value) => updateBulkTemplateFields({ otherContent: value })}
+                  placeholder="填写统一的登录步骤、注意事项或补充说明"
+                  multiline
+                />
+              </div>
+            ) : null}
+
             <button
               type="button"
               onClick={() => void handleCreate()}
@@ -326,7 +386,7 @@ export function RedeemManager({
               {creating ? '生成中...' : '批量生成兑换码'}
             </button>
 
-            <p className="text-xs leading-6 text-slate-500">单次最多生成 200 个码；每个码都会单独保存内容并在兑换后自动失效。</p>
+            <p className="text-xs leading-6 text-slate-500">单次最多生成 200 个码；即使已兑换，后续也支持继续修改内容或直接删除。</p>
           </div>
         </section>
 
@@ -409,7 +469,7 @@ export function RedeemManager({
                   <p className="mt-2 text-xs text-slate-500">创建于 {formatDateTime(selectedItem.createdAt)}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {selectedItem.redeemedAt
-                      ? `使用于 ${formatDateTime(selectedItem.redeemedAt)}`
+                      ? `使用于 ${formatDateTime(selectedItem.redeemedAt)}，现在也允许继续修改或删除`
                       : '尚未被买家兑换'}
                   </p>
                 </div>
@@ -422,19 +482,13 @@ export function RedeemManager({
                   >
                     {copiedCodeId === selectedItem.id ? '已复制' : '复制兑换码'}
                   </button>
-                  {!selectedItem.redeemedAt ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete()}
-                      className="rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                    >
-                      删除作废
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-400">
-                      已使用不可删除
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete()}
+                    className="rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                  >
+                    删除兑换码
+                  </button>
                 </div>
               </div>
             </section>
@@ -445,7 +499,7 @@ export function RedeemManager({
                 <select
                   value={draft.productId}
                   onChange={(event) => setDraft((current) => ({ ...current, productId: event.target.value }))}
-                  disabled={Boolean(selectedItem.redeemedAt) || products.length === 0}
+                  disabled={products.length === 0}
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400 disabled:bg-slate-100"
                 >
                   <option value="">请选择商品</option>
@@ -460,31 +514,56 @@ export function RedeemManager({
               <div>
                 <p className="text-sm font-medium text-slate-900">兑换后展示内容</p>
                 <p className="mt-1 text-xs leading-6 text-slate-500">
-                  这里填写这个兑换码专属的账号、密码、步骤和备注。已使用的记录只展示，不允许再修改。
+                  直接填写账号、密码、2FA 和其他说明即可；保存后，买家下次兑换或查看历史记录时会看到最新内容。
                 </p>
               </div>
 
-              {selectedItem.redeemedAt ? (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <RichTextViewer content={selectedItem.contentJson} />
-                </div>
-              ) : (
-                <RichTextEditor value={draft.contentJson} onChange={(contentJson) => setDraft((current) => ({ ...current, contentJson }))} />
-              )}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <FieldInput
+                  label="账号"
+                  value={draftFields.account}
+                  onChange={(value) => updateDraftFields({ account: value })}
+                  placeholder="例如：example@gmail.com"
+                />
+                <FieldInput
+                  label="密码"
+                  value={draftFields.password}
+                  onChange={(value) => updateDraftFields({ password: value })}
+                  placeholder="填写对应密码"
+                />
+                <FieldInput
+                  label="2FA"
+                  value={draftFields.twoFactorCode}
+                  onChange={(value) => updateDraftFields({ twoFactorCode: value })}
+                  placeholder="填写 2FA 密钥、验证码说明或恢复码"
+                />
+                <FieldInput
+                  label="其他内容"
+                  value={draftFields.otherContent}
+                  onChange={(value) => updateDraftFields({ otherContent: value })}
+                  placeholder="填写登录步骤、注意事项或补充说明"
+                  multiline
+                />
+              </div>
+
+              <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <p className="text-sm font-medium text-slate-900">买家看到的内容预览</p>
+                <RichTextViewer content={getRedeemContentDocument(draft.contentJson)} />
+              </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
-                  disabled={saving || Boolean(selectedItem.redeemedAt)}
+                  disabled={saving}
                   className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
                   {saving ? '保存中...' : '保存兑换内容'}
                 </button>
-                {selectedItem.redeemedAt ? (
-                  <span className="text-sm text-slate-500">该兑换码已标记为已使用，当前内容仅供查看。</span>
-                ) : (
-                  <span className="text-sm text-slate-500">保存后，该兑换码将使用自己的独立内容，不再共享其它兑换码数据。</span>
-                )}
+                <span className="text-sm text-slate-500">
+                  {selectedItem.redeemedAt
+                    ? '这个码已兑换过，保存后会同步更新历史查看内容。'
+                    : '保存后，这个兑换码将使用自己的独立内容。'}
+                </span>
               </div>
             </section>
           </form>

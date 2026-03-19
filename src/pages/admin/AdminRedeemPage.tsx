@@ -16,7 +16,7 @@ export function AdminRedeemPage() {
   return (
     <AdminSectionPage
       title="兑换码"
-      description="统一维护一对一兑换码。先按商品批量生成空白码，再逐条补充账号、密码、步骤等专属内容。"
+      description="统一维护一对一兑换码。支持按模板批量生成，并直接填写账号、密码、2FA 与补充说明。"
       action={
         <Link
           to="/redeem"

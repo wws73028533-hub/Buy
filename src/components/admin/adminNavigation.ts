@@ -30,7 +30,7 @@ export const adminNavigationItems: AdminNavItem[] = [
     key: 'tutorials',
     to: '/admin/tutorials',
     label: '使用指南',
-    description: '维护图文链接、资料下载与教程入口。',
+    description: '维护站内图文、资料下载与教程入口。',
     publicTo: '/tutorials',
     publicLabel: '查看指南页',
   },

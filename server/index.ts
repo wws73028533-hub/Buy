@@ -27,9 +27,10 @@ type Product = {
 type TutorialItem = {
   id: string
   title: string
-  type: 'link' | 'file'
+  type: 'link' | 'file' | 'article'
   url: string | null
   fileUrl: string | null
+  contentJson: Record<string, unknown>
   sortOrder: number
   isPublished: boolean
   createdAt: string
@@ -103,6 +104,7 @@ const tutorialColumns = `
   type,
   url,
   file_url as "fileUrl",
+  content_json as "contentJson",
   sort_order as "sortOrder",
   is_published as "isPublished",
   created_at as "createdAt",
@@ -252,22 +254,31 @@ function normalizeProductInput(body: unknown) {
   }
 }
 
+function createEmptyRichTextDocument() {
+  return {
+    type: 'doc',
+    content: [{ type: 'paragraph' }],
+  }
+}
+
 function normalizeTutorialInput(body: unknown) {
   const input = body as Record<string, unknown>
-  const type = readString(input.type, '教程类型') as 'link' | 'file'
+  const type = readString(input.type, '教程类型') as 'link' | 'file' | 'article'
 
-  if (type !== 'link' && type !== 'file') {
-    throw badRequest('教程类型必须是 link 或 file')
+  if (type !== 'link' && type !== 'file' && type !== 'article') {
+    throw badRequest('教程类型必须是 link、file 或 article')
   }
 
   const url = type === 'link' ? readString(input.url, '教程链接') : null
   const fileUrl = type === 'file' ? readString(input.fileUrl, '教程文件') : null
+  const contentJson = type === 'article' ? readObject(input.contentJson, '教程正文') : createEmptyRichTextDocument()
 
   return {
     title: readString(input.title, '教程标题'),
     type,
     url,
     fileUrl,
+    contentJson,
     sortOrder: readNumber(input.sortOrder, '排序值'),
     isPublished: readBoolean(input.isPublished, '发布状态'),
   }
@@ -301,23 +312,20 @@ function normalizeRedeemItemBulkInput(body: unknown) {
   return {
     productId: readString(input.productId, '商品ID'),
     count: readIntegerInRange(input.count, '生成数量', 1, 200),
+    contentJson: input.contentJson === undefined ? createDefaultRedeemContent() : readObject(input.contentJson, '模板内容'),
   }
 }
 
 function createDefaultRedeemContent() {
   return {
-    type: 'doc',
-    content: [
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '请填写这个兑换码专属的账号、密码、登录方式、步骤和注意事项。每个兑换码都应该维护自己的独立内容。',
-          },
-        ],
-      },
-    ],
+    schema: 'redeem-delivery-v1',
+    fields: {
+      account: '',
+      password: '',
+      twoFactorCode: '',
+      otherContent: '',
+    },
+    renderedContent: createEmptyRichTextDocument(),
   }
 }
 
@@ -447,7 +455,7 @@ async function getRedeemItemById(id: string) {
   return result.rows[0] ?? null
 }
 
-async function createRedeemItems(productId: string, count: number) {
+async function createRedeemItems(productId: string, count: number, contentJson: Record<string, unknown>) {
   const client = await pool.connect()
 
   try {
@@ -482,7 +490,7 @@ async function createRedeemItems(productId: string, count: number) {
           `insert into redeem_items (product_id, code, normalized_code, content_json)
            values ($1, $2, $3, $4)
            returning id`,
-          [productId, code, normalizedCode, createDefaultRedeemContent()],
+          [productId, code, normalizedCode, contentJson],
         )
 
         itemIds.push(result.rows[0].id)
@@ -520,31 +528,12 @@ async function saveRedeemItem(id: string, input: ReturnType<typeof normalizeRede
      set product_id = $2,
          content_json = $3
      where id = $1
-       and redeemed_at is null
      returning id`,
     [id, input.productId, input.contentJson],
   )
 
   if (!result.rows[0]) {
-    const existingResult = await pool.query<{ id: string; redeemedAt: string | null }>(
-      `select id, redeemed_at as "redeemedAt"
-       from redeem_items
-       where id = $1
-       limit 1`,
-      [id],
-    )
-
-    const existing = existingResult.rows[0]
-
-    if (!existing) {
-      throw badRequest('兑换码不存在')
-    }
-
-    if (existing.redeemedAt) {
-      throw badRequest('已使用的兑换码不能再修改')
-    }
-
-    throw badRequest('兑换码保存失败')
+    throw badRequest('兑换码不存在')
   }
 
   const item = await getRedeemItemById(id)
@@ -816,10 +805,10 @@ app.post('/api/admin/tutorials', requireAdmin, async (request, response, next) =
   try {
     const input = normalizeTutorialInput(request.body)
     const result = await pool.query<TutorialItem>(
-      `insert into tutorial_items (title, type, url, file_url, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6)
+      `insert into tutorial_items (title, type, url, file_url, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7)
        returning ${tutorialColumns}`,
-      [input.title, input.type, input.url, input.fileUrl, input.sortOrder, input.isPublished],
+      [input.title, input.type, input.url, input.fileUrl, input.contentJson, input.sortOrder, input.isPublished],
     )
 
     response.json({ tutorial: result.rows[0] })
@@ -837,11 +826,12 @@ app.put('/api/admin/tutorials/:id', requireAdmin, async (request, response, next
            type = $3,
            url = $4,
            file_url = $5,
-           sort_order = $6,
-           is_published = $7
+           content_json = $6,
+           sort_order = $7,
+           is_published = $8
        where id = $1
        returning ${tutorialColumns}`,
-      [request.params.id, input.title, input.type, input.url, input.fileUrl, input.sortOrder, input.isPublished],
+      [request.params.id, input.title, input.type, input.url, input.fileUrl, input.contentJson, input.sortOrder, input.isPublished],
     )
 
     if (!result.rows[0]) {
@@ -917,7 +907,7 @@ app.delete('/api/admin/contacts/:id', requireAdmin, async (request, response, ne
 app.post('/api/admin/redeem-items/bulk', requireAdmin, async (request, response, next) => {
   try {
     const input = normalizeRedeemItemBulkInput(request.body)
-    const items = await createRedeemItems(input.productId, input.count)
+    const items = await createRedeemItems(input.productId, input.count, input.contentJson)
 
     response.json({ items })
   } catch (error) {
@@ -940,12 +930,12 @@ app.put('/api/admin/redeem-items/:id', requireAdmin, async (request, response, n
 app.delete('/api/admin/redeem-items/:id', requireAdmin, async (request, response, next) => {
   try {
     const result = await pool.query<{ id: string }>(
-      'delete from redeem_items where id = $1 and redeemed_at is null returning id',
+      'delete from redeem_items where id = $1 returning id',
       [request.params.id],
     )
 
     if (!result.rows[0]) {
-      throw badRequest('兑换码不存在，或已被使用后不可删除')
+      throw badRequest('兑换码不存在')
     }
 
     response.json({ ok: true })

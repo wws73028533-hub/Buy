@@ -6,6 +6,7 @@ import { PublicPageHeader } from '../components/PublicPageHeader'
 import { SectionCard } from '../components/SectionCard'
 import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
+import { getRedeemContentDocument } from '../lib/redeemContent'
 import { formatDateTime } from '../lib/utils'
 import { redeemByCode } from '../services/publicApi'
 import type { RedeemResult } from '../types/content'
@@ -133,7 +134,7 @@ export function RedeemPage() {
       {redemption ? (
         <SectionCard title={redemption.title} description={resultDescription}>
           <div className="rounded-3xl border border-slate-100 bg-slate-50 px-5 py-6 sm:px-6">
-            <RichTextViewer content={redemption.contentJson} />
+            <RichTextViewer content={getRedeemContentDocument(redemption.contentJson)} />
           </div>
           <div
             className={`mt-5 rounded-3xl px-5 py-4 text-sm leading-6 ${

@@ -138,19 +138,18 @@ export function HomePage() {
               {featuredTutorials.length > 0 ? (
                 <div className="space-y-4">
                   {featuredTutorials.map((tutorial, index) => {
-                    const href = tutorial.type === 'link' ? tutorial.url : tutorial.fileUrl
-
-                    return (
-                      <a
-                        key={tutorial.id}
-                        href={href ?? '#'}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group flex items-start gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft"
-                      >
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-                          {tutorial.type === 'link' ? '↗' : '⇩'}
-                        </div>
+                    const to = tutorial.type === 'article' ? `/tutorials#tutorial-${tutorial.id}` : null
+                    const href = tutorial.type === 'link' ? tutorial.url : tutorial.type === 'file' ? tutorial.fileUrl : null
+                    const icon = tutorial.type === 'article' ? '文' : tutorial.type === 'link' ? '↗' : '⇩'
+                    const description =
+                      tutorial.type === 'article'
+                        ? '站内图文教程 / 直接查看'
+                        : tutorial.type === 'link'
+                          ? '图文说明 / 外部页面'
+                          : '资料下载 / 文件领取'
+                    const content = (
+                      <>
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-lg font-semibold text-slate-900">{tutorial.title}</h3>
@@ -158,11 +157,29 @@ export function HomePage() {
                               第 {index + 1} 项
                             </span>
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            {tutorial.type === 'link' ? '图文说明 / 外部页面' : '资料下载 / 文件领取'}
-                          </p>
+                          <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
                         </div>
                         <span className="text-sm font-semibold text-brand-600 transition group-hover:translate-x-1">打开 →</span>
+                      </>
+                    )
+
+                    return tutorial.type === 'article' ? (
+                      <Link
+                        key={tutorial.id}
+                        to={to ?? '/tutorials'}
+                        className="group flex items-start gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft"
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <a
+                        key={tutorial.id}
+                        href={href ?? '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-start gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft"
+                      >
+                        {content}
                       </a>
                     )
                   })}

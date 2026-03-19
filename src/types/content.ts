@@ -14,7 +14,7 @@ export interface Product {
   updatedAt: string
 }
 
-export type TutorialType = 'link' | 'file'
+export type TutorialType = 'link' | 'file' | 'article'
 
 export interface TutorialItem {
   id: string
@@ -22,6 +22,7 @@ export interface TutorialItem {
   type: TutorialType
   url: string | null
   fileUrl: string | null
+  contentJson: RichTextJson
   sortOrder: number
   isPublished: boolean
   createdAt: string
@@ -76,6 +77,7 @@ export interface TutorialInput {
   type: TutorialType
   url: string | null
   fileUrl: string | null
+  contentJson: RichTextJson
   sortOrder: number
   isPublished: boolean
 }
@@ -99,4 +101,5 @@ export interface RedeemItemInput {
 export interface RedeemItemBulkInput {
   productId: string
   count: number
+  contentJson: RichTextJson
 }

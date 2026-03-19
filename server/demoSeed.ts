@@ -13,9 +13,10 @@ type SeedProduct = {
 
 type SeedTutorial = {
   title: string
-  type: 'link' | 'file'
+  type: 'link' | 'file' | 'article'
   url: string | null
   fileUrl: string | null
+  contentJson: Record<string, unknown>
   sortOrder: number
   isPublished: boolean
 }
@@ -92,6 +93,60 @@ function createProductContent({
   }
 }
 
+function createTutorialArticleContent({
+  intro,
+  steps,
+  notes,
+}: {
+  intro: string
+  steps: string[]
+  notes: string[]
+}) {
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: intro }],
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '操作步骤' }],
+      },
+      {
+        type: 'orderedList',
+        content: steps.map((item) => ({
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: item }],
+            },
+          ],
+        })),
+      },
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: '使用提醒' }],
+      },
+      {
+        type: 'bulletList',
+        content: notes.map((item) => ({
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: item }],
+            },
+          ],
+        })),
+      },
+    ],
+  }
+}
+
 const demoProducts: SeedProduct[] = [
   {
     slug: 'ai-collaboration-membership',
@@ -125,10 +180,20 @@ const demoProducts: SeedProduct[] = [
 
 const demoTutorials: SeedTutorial[] = [
   {
-    title: '新手上手指南',
-    type: 'link',
-    url: '/demo-getting-started.html',
+    title: '2FA 登录教程',
+    type: 'article',
+    url: null,
     fileUrl: null,
+    contentJson: createTutorialArticleContent({
+      intro: '拿到商家提供的邮箱、密码和 2FA 信息后，按下面步骤即可完成登录。',
+      steps: [
+        '先打开对应平台的登录页，输入邮箱和密码。',
+        '当页面要求二次验证时，选择通过谷歌身份验证器获取验证码。',
+        '打开 2FA 工具，输入商家提供的 2FA 密钥，获取当前验证码。',
+        '把验证码填回登录页并提交，即可完成登录。',
+      ],
+      notes: ['验证码会定时刷新，过期后重新获取再输入。', '如果页面超时或报错，刷新后重新登录即可。'],
+    }),
     sortOrder: 0,
     isPublished: true,
   },
@@ -137,6 +202,7 @@ const demoTutorials: SeedTutorial[] = [
     type: 'link',
     url: '/demo-shopping-faq.html',
     fileUrl: null,
+    contentJson: { type: 'doc', content: [{ type: 'paragraph' }] },
     sortOrder: 1,
     isPublished: true,
   },
@@ -188,9 +254,9 @@ async function insertProducts(client: PoolClient, items: SeedProduct[]) {
 async function insertTutorials(client: PoolClient, items: SeedTutorial[]) {
   for (const item of items) {
     await client.query(
-      `insert into tutorial_items (title, type, url, file_url, sort_order, is_published)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [item.title, item.type, item.url, item.fileUrl, item.sortOrder, item.isPublished],
+      `insert into tutorial_items (title, type, url, file_url, content_json, sort_order, is_published)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [item.title, item.type, item.url, item.fileUrl, item.contentJson, item.sortOrder, item.isPublished],
     )
   }
 }

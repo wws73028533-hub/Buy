@@ -28,9 +28,10 @@ alter table public.products add column if not exists purchase_code text;
 create table if not exists public.tutorial_items (
   id uuid primary key default gen_random_uuid(),
   title text not null,
-  type text not null check (type in ('link', 'file')),
+  type text not null check (type in ('link', 'file', 'article')),
   url text,
   file_url text,
+  content_json jsonb not null default '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb,
   sort_order integer not null default 0,
   is_published boolean not null default false,
   created_at timestamptz not null default now(),
@@ -38,7 +39,18 @@ create table if not exists public.tutorial_items (
   constraint tutorial_items_type_content_check check (
     (type = 'link' and url is not null and file_url is null)
     or (type = 'file' and file_url is not null and url is null)
+    or (type = 'article' and url is null and file_url is null)
   )
+);
+
+alter table public.tutorial_items add column if not exists content_json jsonb not null default '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb;
+alter table public.tutorial_items drop constraint if exists tutorial_items_type_check;
+alter table public.tutorial_items add constraint tutorial_items_type_check check (type in ('link', 'file', 'article'));
+alter table public.tutorial_items drop constraint if exists tutorial_items_type_content_check;
+alter table public.tutorial_items add constraint tutorial_items_type_content_check check (
+  (type = 'link' and url is not null and file_url is null)
+  or (type = 'file' and file_url is not null and url is null)
+  or (type = 'article' and url is null and file_url is null)
 );
 
 create table if not exists public.contact_items (
