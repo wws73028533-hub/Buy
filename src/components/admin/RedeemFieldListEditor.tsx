@@ -44,9 +44,13 @@ export function RedeemFieldListEditor({
         </div>
       ) : null}
 
-      <div className="space-y-4">
+      <div data-testid="redeem-field-editor-grid" className="grid gap-3 md:grid-cols-2">
         {fields.map((field, index) => (
-          <section key={field.id} data-testid="redeem-field-editor-card" className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <section
+            key={field.id}
+            data-testid="redeem-field-editor-card"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-medium text-slate-900">字段 {index + 1}</p>
               <button
@@ -58,14 +62,14 @@ export function RedeemFieldListEditor({
               </button>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="mt-3 space-y-3">
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-slate-700">字段标题</span>
                 <input
                   aria-label="字段标题"
                   value={field.label}
                   onChange={(event) => handleFieldChange(field.id, { label: event.target.value })}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-brand-400"
                   placeholder={getDefaultRedeemFieldLabel(index)}
                 />
               </label>
@@ -76,8 +80,8 @@ export function RedeemFieldListEditor({
                   aria-label="字段内容"
                   value={field.value}
                   onChange={(event) => handleFieldChange(field.id, { value: event.target.value })}
-                  rows={4}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-brand-400"
+                  rows={3}
+                  className="min-h-[96px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-brand-400"
                   placeholder="填写买家兑换后会看到的内容"
                 />
               </label>

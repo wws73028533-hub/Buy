@@ -86,6 +86,10 @@ describe('RedeemManager', () => {
 
     fireEvent.change(screen.getByLabelText('生成模板'), { target: { value: 'custom' } })
 
+    expect(within(screen.getByTestId('redeem-main-column')).getByText('批量生成模板内容')).toBeInTheDocument()
+    expect(within(screen.getByTestId('redeem-sidebar')).getByText('自定义模板改到右侧编辑')).toBeInTheDocument()
+    expect(screen.getAllByTestId('redeem-field-editor-grid')[0]).toHaveClass('md:grid-cols-2')
+
     const templateCards = screen.getAllByTestId('redeem-field-editor-card')
     fireEvent.change(within(templateCards[0]).getByLabelText('字段标题'), { target: { value: '登录账号' } })
     fireEvent.change(within(templateCards[0]).getByLabelText('字段内容'), { target: { value: 'shared-account@example.com' } })

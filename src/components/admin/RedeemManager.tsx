@@ -137,6 +137,10 @@ export function RedeemManager({
     }))
   }
 
+  const updateBulkTemplateFields = (updater: (fields: RedeemContentFields) => RedeemContentFields) => {
+    setBulkTemplateFields((current) => updater(current))
+  }
+
   const handleCreate = async () => {
     if (products.length === 0) {
       window.alert('请先创建至少 1 个商品，再生成兑换码')
@@ -249,7 +253,7 @@ export function RedeemManager({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <div className="space-y-6">
+      <div data-testid="redeem-sidebar" className="space-y-6">
         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="mb-4">
             <p className="text-sm font-medium text-slate-900">按商品批量生成兑换码</p>
@@ -311,28 +315,11 @@ export function RedeemManager({
             </label>
 
             {bulkTemplateMode === 'custom' ? (
-              <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4">
-                <RedeemFieldListEditor
-                  fields={bulkTemplateFields.deliveryFields}
-                  onChange={(deliveryFields) => setBulkTemplateFields((current) => ({ ...current, deliveryFields }))}
-                />
-
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium text-slate-700">模板其他内容</span>
-                  <textarea
-                    aria-label="模板其他内容"
-                    value={bulkTemplateFields.otherContent}
-                    onChange={(event) =>
-                      setBulkTemplateFields((current) => ({
-                        ...current,
-                        otherContent: event.target.value,
-                      }))
-                    }
-                    rows={5}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-                    placeholder="填写统一的登录步骤、注意事项或补充说明"
-                  />
-                </label>
+              <div className="rounded-3xl border border-dashed border-brand-200 bg-brand-50/70 p-4">
+                <p className="text-sm font-medium text-slate-900">自定义模板改到右侧编辑</p>
+                <p className="mt-1 text-xs leading-6 text-slate-500">
+                  为了避免编辑区过挤，账号、密码、2FA 等模板字段已放到右侧主页面，可在更宽的位置统一配置。
+                </p>
               </div>
             ) : null}
 
@@ -398,7 +385,7 @@ export function RedeemManager({
         </section>
       </div>
 
-      <div className="space-y-6">
+      <div data-testid="redeem-main-column" className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
           <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
             <p className="text-xs text-slate-500">总数</p>
@@ -413,6 +400,47 @@ export function RedeemManager({
             <p className="mt-2 text-3xl font-semibold text-slate-900">{codeSummary.redeemed}</p>
           </article>
         </div>
+
+        {bulkTemplateMode === 'custom' ? (
+          <section data-testid="bulk-template-editor" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+            <div>
+              <p className="text-sm font-medium text-slate-900">批量生成模板内容</p>
+              <p className="mt-1 text-xs leading-6 text-slate-500">
+                当前选择的是“自定义模板”，右侧这里配置的账号、密码、2FA 和补充说明会写入本次生成的每个兑换码。
+              </p>
+            </div>
+
+            <RedeemFieldListEditor
+              fields={bulkTemplateFields.deliveryFields}
+              onChange={(deliveryFields) =>
+                updateBulkTemplateFields((current) => ({
+                  ...current,
+                  deliveryFields,
+                }))
+              }
+              addButtonLabel="新增模板字段"
+            />
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-slate-700">模板其他内容</span>
+              <textarea
+                aria-label="模板其他内容"
+                value={bulkTemplateFields.otherContent}
+                onChange={(event) =>
+                  updateBulkTemplateFields((current) => ({
+                    ...current,
+                    otherContent: event.target.value,
+                  }))
+                }
+                rows={5}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
+                placeholder="填写统一的登录步骤、注意事项或补充说明"
+              />
+            </label>
+
+            <p className="text-xs leading-6 text-slate-500">确认无误后，直接点击左侧的“批量生成兑换码”即可按当前模板批量创建。</p>
+          </section>
+        ) : null}
 
         {!selectedItem ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500">
