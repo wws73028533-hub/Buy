@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '../lib/api'
-import type { ContactItem, Product, RedeemResult, TutorialItem } from '../types/content'
+import type { ContactItem, Product, PurchaseLink, RedeemResult, TutorialItem } from '../types/content'
 
 export type HomepageDataSource = 'postgres'
 
@@ -14,13 +14,17 @@ type RedeemResponse = {
   redemption: RedeemResult
 }
 
+export type ProductDetailResponse = {
+  product: Product | null
+  globalPurchaseLinks: PurchaseLink[]
+}
+
 export async function getHomepageData() {
   return apiGet<HomepageResponse>('/api/public/homepage')
 }
 
 export async function getPublishedProductBySlug(slug: string) {
-  const data = await apiGet<{ product: Product | null }>(`/api/public/products/${slug}`)
-  return data.product
+  return apiGet<ProductDetailResponse>(`/api/public/products/${slug}`)
 }
 
 export async function redeemByCode(code: string) {

@@ -2,6 +2,8 @@ import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api'
 import type {
   ContactInput,
   ContactItem,
+  GlobalPurchaseLinksInput,
+  PurchaseLink,
   Product,
   ProductInput,
   RedeemItem,
@@ -15,6 +17,7 @@ type AdminContentResponse = {
   products: Product[]
   tutorials: TutorialItem[]
   contacts: ContactItem[]
+  globalPurchaseLinks: PurchaseLink[]
 }
 
 type AdminRedeemResponse = {
@@ -45,6 +48,11 @@ export async function saveProduct(input: ProductInput) {
 
 export async function deleteProduct(id: string) {
   await apiDelete<{ ok: true }>(`/api/admin/products/${id}`)
+}
+
+export async function saveGlobalPurchaseLinks(purchaseLinks: GlobalPurchaseLinksInput['purchaseLinks']) {
+  const data = await apiPut<{ purchaseLinks: PurchaseLink[] }>('/api/admin/global-purchase-links', { purchaseLinks })
+  return data.purchaseLinks
 }
 
 export async function saveTutorial(input: TutorialInput) {

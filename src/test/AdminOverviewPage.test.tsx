@@ -24,6 +24,7 @@ function createAdminDataValue({
   return {
     loading: false,
     error: null,
+    globalPurchaseLinks: [],
     products,
     tutorials,
     contacts,
@@ -48,6 +49,7 @@ function createAdminDataValue({
       },
     },
     refresh: vi.fn(async () => undefined),
+    setGlobalPurchaseLinks: vi.fn(),
     setProducts: vi.fn(),
     setTutorials: vi.fn(),
     setContacts: vi.fn(),

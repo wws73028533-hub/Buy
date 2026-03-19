@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import { getAdminData, getRedeemData } from '../services/adminApi'
-import type { ContactItem, Product, RedeemItem, TutorialItem } from '../types/content'
+import type { ContactItem, Product, PurchaseLink, RedeemItem, TutorialItem } from '../types/content'
 import { AdminDataContext } from './AdminDataContextObject'
 import type { AdminDataContextValue, AdminSummary } from './adminData'
 
@@ -35,6 +35,7 @@ function createSummary(products: Product[], tutorials: TutorialItem[], contacts:
 }
 
 export function AdminDataProvider({ children }: PropsWithChildren) {
+  const [globalPurchaseLinks, setGlobalPurchaseLinks] = useState<PurchaseLink[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [tutorials, setTutorials] = useState<TutorialItem[]>([])
   const [contacts, setContacts] = useState<ContactItem[]>([])
@@ -49,6 +50,7 @@ export function AdminDataProvider({ children }: PropsWithChildren) {
     try {
       const [contentData, redeemData] = await Promise.all([getAdminData(), getRedeemData()])
 
+      setGlobalPurchaseLinks(contentData.globalPurchaseLinks ?? [])
       setProducts(contentData.products)
       setTutorials(contentData.tutorials)
       setContacts(contentData.contacts)
@@ -73,18 +75,20 @@ export function AdminDataProvider({ children }: PropsWithChildren) {
     () => ({
       loading,
       error,
+      globalPurchaseLinks,
       products,
       tutorials,
       contacts,
       redeemItems,
       summary,
       refresh,
+      setGlobalPurchaseLinks,
       setProducts,
       setTutorials,
       setContacts,
       setRedeemItems,
     }),
-    [contacts, error, loading, products, redeemItems, refresh, summary, tutorials],
+    [contacts, error, globalPurchaseLinks, loading, products, redeemItems, refresh, summary, tutorials],
   )
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { GlobalPurchaseLinksManager } from '../../components/admin/GlobalPurchaseLinksManager'
 import { ProductManager } from '../../components/admin/ProductManager'
 import { AdminSectionPage } from '../../components/admin/AdminSectionPage'
 import { useAdminData } from '../../contexts/useAdminData'
@@ -8,10 +9,10 @@ import { usePageMeta } from '../../hooks/usePageMeta'
 export function AdminProductsPage() {
   usePageMeta({
     title: '商品管理',
-    description: '维护前台商品卡片、详情文案、封面图片与购买入口。',
+    description: '维护全局购买入口、商品专属入口、详情文案与封面图片。',
   })
 
-  const { loading, error, products, refresh, setProducts } = useAdminData()
+  const { loading, error, globalPurchaseLinks, products, refresh, setGlobalPurchaseLinks, setProducts } = useAdminData()
 
   return (
     <AdminSectionPage
@@ -31,7 +32,10 @@ export function AdminProductsPage() {
       errorTitle="商品管理加载失败"
       onRetry={() => void refresh()}
     >
-      <ProductManager items={products} onChange={setProducts} />
+      <div className="space-y-6">
+        <GlobalPurchaseLinksManager links={globalPurchaseLinks} onChange={setGlobalPurchaseLinks} />
+        <ProductManager items={products} onChange={setProducts} />
+      </div>
     </AdminSectionPage>
   )
 }

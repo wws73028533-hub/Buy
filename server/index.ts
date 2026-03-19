@@ -10,13 +10,18 @@ import { seedDefaultShowcaseContent } from './demoSeed.js'
 import { clearSessionCookie, getSessionFromRequest, setSessionCookie } from './session.js'
 import { assertUploadKind, ensureUploadDirectory, saveUploadedFile } from './storage.js'
 
+type PurchaseLink = {
+  label: string
+  url: string
+}
+
 type Product = {
   id: string
   slug: string
   title: string
   coverImageUrl: string | null
   purchaseLinkUrl: string | null
-  purchaseLinks: Array<{ label: string; url: string }>
+  purchaseLinks: PurchaseLink[]
   purchaseCode: string | null
   contentJson: Record<string, unknown>
   sortOrder: number
@@ -83,6 +88,7 @@ const REDEEM_RATE_LIMIT_MAX_REQUESTS = 20
 const REDEEM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const REDEEM_CODE_GROUP_LENGTH = 4
 const REDEEM_CODE_GROUP_COUNT = 3
+const GLOBAL_PURCHASE_LINKS_SETTING_KEY = 'global_purchase_links'
 const redeemRateLimitStore = new Map<string, { count: number; resetAt: number }>()
 
 const productColumns = `
@@ -208,7 +214,7 @@ function normalizePurchaseLinks(value: unknown) {
     throw badRequest('购买入口最多支持 8 个')
   }
 
-  return value.reduce<Array<{ label: string; url: string }>>((result, item, index) => {
+  return value.reduce<PurchaseLink[]>((result, item, index) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       throw badRequest(`第 ${index + 1} 个购买入口格式不正确`)
     }
@@ -232,6 +238,26 @@ function normalizePurchaseLinks(value: unknown) {
 
     return result
   }, [])
+}
+
+async function getGlobalPurchaseLinks() {
+  const result = await pool.query<{ valueJson: { purchaseLinks?: unknown } }>(
+    'select value_json as "valueJson" from site_settings where key = $1 limit 1',
+    [GLOBAL_PURCHASE_LINKS_SETTING_KEY],
+  )
+
+  return normalizePurchaseLinks(result.rows[0]?.valueJson?.purchaseLinks ?? [])
+}
+
+async function saveGlobalPurchaseLinks(purchaseLinks: PurchaseLink[]) {
+  await pool.query(
+    `insert into site_settings (key, value_json)
+     values ($1, $2::jsonb)
+     on conflict (key) do update set value_json = excluded.value_json`,
+    [GLOBAL_PURCHASE_LINKS_SETTING_KEY, JSON.stringify({ purchaseLinks })],
+  )
+
+  return purchaseLinks
 }
 
 function readBoolean(value: unknown, field: string) {
@@ -453,16 +479,18 @@ async function listHomepageData() {
 }
 
 async function listAdminData() {
-  const [productsResult, tutorialsResult, contactsResult] = await Promise.all([
+  const [productsResult, tutorialsResult, contactsResult, globalPurchaseLinks] = await Promise.all([
     pool.query<Product>(`select ${productColumns} from products order by sort_order asc, created_at desc`),
     pool.query<TutorialItem>(`select ${tutorialColumns} from tutorial_items order by sort_order asc, created_at desc`),
     pool.query<ContactItem>(`select ${contactColumns} from contact_items order by sort_order asc, created_at desc`),
+    getGlobalPurchaseLinks(),
   ])
 
   return {
     products: productsResult.rows,
     tutorials: tutorialsResult.rows,
     contacts: contactsResult.rows,
+    globalPurchaseLinks,
   }
 }
 
@@ -700,12 +728,18 @@ app.get('/api/public/homepage', async (_request, response, next) => {
 
 app.get('/api/public/products/:slug', async (request, response, next) => {
   try {
-    const result = await pool.query<Product>(
-      `select ${productColumns} from products where slug = $1 and is_published = true limit 1`,
-      [request.params.slug],
-    )
+    const [result, globalPurchaseLinks] = await Promise.all([
+      pool.query<Product>(
+        `select ${productColumns} from products where slug = $1 and is_published = true limit 1`,
+        [request.params.slug],
+      ),
+      getGlobalPurchaseLinks(),
+    ])
 
-    response.json({ product: result.rows[0] ?? null })
+    response.json({
+      product: result.rows[0] ?? null,
+      globalPurchaseLinks,
+    })
   } catch (error) {
     next(error)
   }
@@ -769,6 +803,18 @@ app.get('/api/admin/content', requireAdmin, async (_request, response, next) => 
 app.get('/api/admin/redeem', requireAdmin, async (_request, response, next) => {
   try {
     response.json(await listRedeemData())
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.put('/api/admin/global-purchase-links', requireAdmin, async (request, response, next) => {
+  try {
+    const input = request.body as Record<string, unknown>
+    const purchaseLinks = normalizePurchaseLinks(input.purchaseLinks)
+    const savedPurchaseLinks = await saveGlobalPurchaseLinks(purchaseLinks)
+
+    response.json({ purchaseLinks: savedPurchaseLinks })
   } catch (error) {
     next(error)
   }

@@ -35,23 +35,29 @@ export function sanitizePurchaseLinks(links: PurchaseLink[]) {
   }, [])
 }
 
+export function normalizePurchaseLinksForDisplay(links: PurchaseLink[]) {
+  if (!Array.isArray(links)) {
+    return []
+  }
+
+  return links.reduce<PurchaseLink[]>((result, item) => {
+    const url = item.url.trim()
+
+    if (!url) {
+      return result
+    }
+
+    result.push({
+      label: item.label.trim() || getDefaultPurchaseLinkLabel(result.length),
+      url,
+    })
+
+    return result
+  }, [])
+}
+
 export function getProductPurchaseLinks(product: Pick<Product, 'purchaseLinks' | 'purchaseLinkUrl'>): PurchaseLink[] {
-  const linksFromList = Array.isArray(product.purchaseLinks)
-    ? product.purchaseLinks.reduce<PurchaseLink[]>((result, item) => {
-        const url = item.url.trim()
-
-        if (!url) {
-          return result
-        }
-
-        result.push({
-          label: item.label.trim() || getDefaultPurchaseLinkLabel(result.length),
-          url,
-        })
-
-        return result
-      }, [])
-    : []
+  const linksFromList = normalizePurchaseLinksForDisplay(product.purchaseLinks)
 
   if (linksFromList.length > 0) {
     return linksFromList
@@ -69,4 +75,18 @@ export function getProductPurchaseLinks(product: Pick<Product, 'purchaseLinks' |
       url: legacyUrl,
     },
   ]
+}
+
+export function mergePurchaseLinks(primaryLinks: PurchaseLink[], fallbackLinks: PurchaseLink[]) {
+  const mergedLinks = [...normalizePurchaseLinksForDisplay(primaryLinks), ...normalizePurchaseLinksForDisplay(fallbackLinks)]
+  const seenUrls = new Set<string>()
+
+  return mergedLinks.filter((item) => {
+    if (seenUrls.has(item.url)) {
+      return false
+    }
+
+    seenUrls.add(item.url)
+    return true
+  })
 }

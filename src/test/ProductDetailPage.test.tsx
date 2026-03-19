@@ -3,9 +3,11 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ProductDetailPage } from '../pages/ProductDetailPage'
-import type { Product } from '../types/content'
+import type { Product, PurchaseLink } from '../types/content'
 
-const getPublishedProductBySlugMock = vi.fn<(slug: string) => Promise<Product | null>>()
+const getPublishedProductBySlugMock = vi.fn<
+  (slug: string) => Promise<{ product: Product | null; globalPurchaseLinks: PurchaseLink[] }>
+>()
 
 vi.mock('../services/publicApi', () => ({
   getPublishedProductBySlug: (slug: string) => getPublishedProductBySlugMock(slug),
@@ -46,38 +48,51 @@ function createProduct(overrides?: Partial<Product>): Product {
   }
 }
 
+function createDetailResponse(productOverrides?: Partial<Product>, globalPurchaseLinks: PurchaseLink[] = []) {
+  return {
+    product: createProduct(productOverrides),
+    globalPurchaseLinks,
+  }
+}
+
 afterEach(() => {
   vi.restoreAllMocks()
   getPublishedProductBySlugMock.mockReset()
 })
 
 describe('ProductDetailPage', () => {
-  it('会展示多个直达购买入口', async () => {
+  it('会同时展示商品专属入口和全局购买入口', async () => {
     getPublishedProductBySlugMock.mockResolvedValue(
-      createProduct({
-        purchaseLinkUrl: 'https://shop-a.example.com/item-a',
-        purchaseLinks: [
-          { label: '淘宝入口', url: 'https://shop-a.example.com/item-a' },
-          { label: '京东入口', url: 'https://shop-b.example.com/item-a' },
+      createDetailResponse(
+        {
+          purchaseLinkUrl: 'https://shop-a.example.com/item-a',
+          purchaseLinks: [{ label: '商品专属入口', url: 'https://shop-a.example.com/item-a' }],
+        },
+        [
+          { label: '店铺 A', url: 'https://global-shop-a.example.com' },
+          { label: '店铺 B', url: 'https://global-shop-b.example.com' },
         ],
-      }),
+      ),
     )
 
     renderPage()
 
-    const taobaoLinks = await screen.findAllByRole('link', { name: '直达：淘宝入口' })
-    const jdLinks = screen.getAllByRole('link', { name: '直达：京东入口' })
+    const productLinks = await screen.findAllByRole('link', { name: '直达：商品专属入口' })
+    const globalShopALinks = screen.getAllByRole('link', { name: '直达：店铺 A' })
+    const globalShopBLinks = screen.getAllByRole('link', { name: '直达：店铺 B' })
 
-    expect(taobaoLinks).toHaveLength(2)
-    expect(jdLinks).toHaveLength(2)
-    expect(taobaoLinks[0]).toHaveAttribute('href', 'https://shop-a.example.com/item-a')
-    expect(jdLinks[0]).toHaveAttribute('href', 'https://shop-b.example.com/item-a')
+    expect(productLinks).toHaveLength(2)
+    expect(globalShopALinks).toHaveLength(2)
+    expect(globalShopBLinks).toHaveLength(2)
+    expect(productLinks[0]).toHaveAttribute('href', 'https://shop-a.example.com/item-a')
+    expect(globalShopALinks[0]).toHaveAttribute('href', 'https://global-shop-a.example.com')
+    expect(globalShopBLinks[0]).toHaveAttribute('href', 'https://global-shop-b.example.com')
     expect(screen.getByText('如果当前入口失效，可以继续尝试其它购买入口。')).toBeInTheDocument()
   })
 
   it('旧商品只有单个链接时仍会自动展示默认入口', async () => {
     getPublishedProductBySlugMock.mockResolvedValue(
-      createProduct({
+      createDetailResponse({
         purchaseLinkUrl: 'https://legacy.example.com/item-a',
         purchaseLinks: [],
       }),

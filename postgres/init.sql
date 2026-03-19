@@ -32,6 +32,15 @@ set purchase_links = jsonb_build_array(jsonb_build_object('label', '默认入口
 where purchase_link_url is not null
   and purchase_links = '[]'::jsonb;
 
+create table if not exists public.site_settings (
+  key text primary key,
+  value_json jsonb not null default '{}'::jsonb
+);
+
+insert into public.site_settings (key, value_json)
+values ('global_purchase_links', '{"purchaseLinks":[]}'::jsonb)
+on conflict (key) do nothing;
+
 create table if not exists public.tutorial_items (
   id uuid primary key default gen_random_uuid(),
   title text not null,

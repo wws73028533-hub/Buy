@@ -5,6 +5,7 @@ import { deleteProduct, saveProduct, uploadPublicFile } from '../../services/adm
 import { createEmptyPurchaseLink, getProductPurchaseLinks, sanitizePurchaseLinks } from '../../lib/purchaseLinks'
 import type { Product, ProductInput } from '../../types/content'
 import { fileToDataUrl, formatDate, slugify } from '../../lib/utils'
+import { PurchaseLinkListEditor } from './PurchaseLinkListEditor'
 import { RichTextEditor } from '../rich-text/RichTextEditor'
 
 function createDefaultProductContent(): ProductInput['contentJson'] {
@@ -386,63 +387,16 @@ export function ProductManager({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <span className="text-sm font-medium text-slate-700">购买入口（可选）</span>
-                <p className="mt-1 text-xs leading-6 text-slate-400">可同时配置多个平台或备用链接，详情页会全部展示。</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPurchaseLink}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 hover:text-slate-900"
-              >
-                新增入口
-              </button>
-            </div>
-            {draft.purchaseLinks.length > 0 ? (
-              <div className="space-y-3">
-                {draft.purchaseLinks.map((item, index) => (
-                  <div key={`purchase-link-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
-                      <label className="space-y-2">
-                        <span className="text-sm font-medium text-slate-700">入口名称</span>
-                        <input
-                          value={item.label}
-                          onChange={(event) => handlePurchaseLinkChange(index, 'label', event.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-                          placeholder={index === 0 ? '例如：淘宝入口' : '例如：备用入口'}
-                        />
-                      </label>
-                      <label className="space-y-2">
-                        <span className="text-sm font-medium text-slate-700">链接地址</span>
-                        <input
-                          value={item.url}
-                          onChange={(event) => handlePurchaseLinkChange(index, 'url', event.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-brand-400"
-                          placeholder="例如：https://your-platform.com/item/123"
-                        />
-                      </label>
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePurchaseLink(index)}
-                        className="text-sm font-medium text-slate-500 hover:text-slate-800"
-                      >
-                        删除该入口
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500">
-                暂未添加购买入口。建议至少准备 2 个入口，避免单个链接失效后用户无法继续购买。
-              </div>
-            )}
-            <p className="text-xs leading-6 text-slate-400">未填写入口名称时，系统会自动补成“默认入口 / 入口 2 / 入口 3”。</p>
-          </div>
+          <PurchaseLinkListEditor
+            title="商品专属购买入口（可选）"
+            description="这里只对当前商品生效。若同时配置了全局购买入口，详情页会把两者一起展示。"
+            emptyMessage="暂未添加商品专属入口。若这款商品没有特殊购买页，可以只使用上方的全局购买入口。"
+            helperText="未填写入口名称时，系统会自动补成“默认入口 / 入口 2 / 入口 3”。"
+            links={draft.purchaseLinks}
+            onAdd={handleAddPurchaseLink}
+            onChange={handlePurchaseLinkChange}
+            onRemove={handleRemovePurchaseLink}
+          />
 
           <label className="space-y-2">
             <span className="text-sm font-medium text-slate-700">购买口令（可选）</span>

@@ -78,6 +78,10 @@ export interface ProductInput {
   isPublished: boolean
 }
 
+export interface GlobalPurchaseLinksInput {
+  purchaseLinks: PurchaseLink[]
+}
+
 export interface TutorialInput {
   id?: string
   title: string

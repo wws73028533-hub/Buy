@@ -5,7 +5,7 @@ import { EmptyState } from '../components/EmptyState'
 import { LoadingView } from '../components/LoadingView'
 import { RichTextViewer } from '../components/rich-text/RichTextViewer'
 import { usePageMeta } from '../hooks/usePageMeta'
-import { getProductPurchaseLinks } from '../lib/purchaseLinks'
+import { mergePurchaseLinks, normalizePurchaseLinksForDisplay, getProductPurchaseLinks } from '../lib/purchaseLinks'
 import { getRichTextTextBlocks } from '../lib/richText'
 import { copyText, formatDate } from '../lib/utils'
 import { getPublishedProductBySlug } from '../services/publicApi'
@@ -53,6 +53,7 @@ function PurchaseLinkButton({
 export function ProductDetailPage() {
   const { slug = '' } = useParams()
   const [product, setProduct] = useState<Product | null>(null)
+  const [globalPurchaseLinks, setGlobalPurchaseLinks] = useState<PurchaseLink[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
@@ -73,7 +74,8 @@ export function ProductDetailPage() {
           return
         }
 
-        setProduct(result)
+        setProduct(result.product)
+        setGlobalPurchaseLinks(normalizePurchaseLinksForDisplay(result.globalPurchaseLinks ?? []))
       } catch (loadError) {
         if (!active) {
           return
@@ -98,7 +100,10 @@ export function ProductDetailPage() {
     () => (product ? getRichTextTextBlocks(product.contentJson).filter(Boolean) : []),
     [product],
   )
-  const purchaseLinks = useMemo(() => (product ? getProductPurchaseLinks(product) : []), [product])
+  const purchaseLinks = useMemo(
+    () => (product ? mergePurchaseLinks(getProductPurchaseLinks(product), globalPurchaseLinks) : globalPurchaseLinks),
+    [globalPurchaseLinks, product],
+  )
   const summary = textBlocks[0] ?? '这里集中展示商品亮点、使用说明和购买前需要知道的信息。'
   const highlights = textBlocks.slice(1, 4)
   const concernItems = highlights.length > 0 ? highlights : fallbackHighlights

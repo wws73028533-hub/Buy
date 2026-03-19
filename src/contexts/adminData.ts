@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { ContactItem, Product, RedeemItem, TutorialItem } from '../types/content'
+import type { ContactItem, Product, PurchaseLink, RedeemItem, TutorialItem } from '../types/content'
 
 export type AdminContentSummary = {
   total: number
@@ -23,12 +23,14 @@ export type AdminSummary = {
 export type AdminDataContextValue = {
   loading: boolean
   error: string | null
+  globalPurchaseLinks: PurchaseLink[]
   products: Product[]
   tutorials: TutorialItem[]
   contacts: ContactItem[]
   redeemItems: RedeemItem[]
   summary: AdminSummary
   refresh: () => Promise<void>
+  setGlobalPurchaseLinks: Dispatch<SetStateAction<PurchaseLink[]>>
   setProducts: Dispatch<SetStateAction<Product[]>>
   setTutorials: Dispatch<SetStateAction<TutorialItem[]>>
   setContacts: Dispatch<SetStateAction<ContactItem[]>>
