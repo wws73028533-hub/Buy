@@ -248,7 +248,7 @@ async function insertProducts(client: PoolClient, items: SeedProduct[]) {
         item.title,
         item.coverImageUrl,
         item.purchaseLinkUrl,
-        item.purchaseLinks,
+        JSON.stringify(item.purchaseLinks),
         item.purchaseCode,
         item.contentJson,
         item.sortOrder,
